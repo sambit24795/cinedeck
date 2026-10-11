@@ -89,7 +89,10 @@ func (c *Client) get(ctx context.Context, path string, q url.Values, out any) er
 	key := cacheKey(path, q)
 	if c.cache != nil {
 		if body, ok := c.cache.get(key); ok {
-			return json.Unmarshal(body, out)
+			// A corrupt entry is treated as a miss and refetched.
+			if json.Unmarshal(body, out) == nil {
+				return nil
+			}
 		}
 	}
 

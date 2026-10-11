@@ -122,3 +122,25 @@ func TestCacheWriteFailureDoesNotFailRequest(t *testing.T) {
 		t.Errorf("out = %v, want ok=true", out)
 	}
 }
+
+func TestCacheCorruptEntryIsRefetched(t *testing.T) {
+	var calls int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&calls, 1)
+		w.Write([]byte(`{"ok":true}`))
+	}))
+	defer srv.Close()
+
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, cacheKey("/x", nil)+".json"), []byte("{truncated"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	c := New("tok", WithBaseURL(srv.URL), WithCache(dir, time.Hour))
+	var out map[string]bool
+	if err := c.get(context.Background(), "/x", nil, &out); err != nil {
+		t.Fatalf("get: %v, want a refetch after a corrupt cache entry", err)
+	}
+	if !out["ok"] || atomic.LoadInt32(&calls) != 1 {
+		t.Errorf("out = %v, calls = %d, want ok=true and 1 call", out, calls)
+	}
+}
