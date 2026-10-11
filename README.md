@@ -77,6 +77,17 @@ cinedeck history
 
 `rate` takes a number from 1 to 10 and also marks the title as watched. A rating of 4 or less counts as "disliked" (the title will not be recommended), and 8 or more counts like a like. Undo with `unlike`, `unrate`, `unwatch` and `watchlist rm`; repeating a command is harmless. Marking a title as watched removes it from the watchlist.
 
+Get recommendations. `--from` finds titles like one you name (TMDB's own recommendations plus similar titles; for the other type, such as "I liked this movie, which shows?", it matches shared keywords and genres). Without `--from`, cinedeck builds your taste from the titles you liked or rated 8 or higher, finds candidates on TMDB, scores them locally, and tells you why each was picked:
+
+```
+cinedeck recommend --from movie:27205 --type tv
+cinedeck recommend --from "breaking bad" --first
+cinedeck recommend
+cinedeck recommend --type movie --limit 5
+```
+
+Personal recommendations skip everything you liked, rated or watched, and never suggest a title you rated 4 or lower. They use at most 32 TMDB requests per run (all cached for 24 hours) and work best after you have liked or rated a handful of titles.
+
 See where a title is available (by id or by title). The region comes from your config; `--region` overrides it:
 
 ```
