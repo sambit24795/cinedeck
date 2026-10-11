@@ -32,7 +32,8 @@ func TestTrendingCommandTV(t *testing.T) {
 	t.Cleanup(srv.Close)
 	setCatalogEnv(t, srv)
 
-	out, err := runRootCmd(t, "trending", "--type", "tv", "--config", filepath.Join(t.TempDir(), "none.toml"))
+	// Same rule as discover and anime: the type is case-insensitive.
+	out, err := runRootCmd(t, "trending", "--type", "TV", "--config", filepath.Join(t.TempDir(), "none.toml"))
 	if err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
