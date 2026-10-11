@@ -70,6 +70,9 @@ func newConfigInitCmd() *cobra.Command {
 				fmt.Fprint(out, "TMDB token [keep current]: ")
 			}
 			if v, err := readAnswer(in); err == nil && v != "" {
+				if isShortAPIKey(v) {
+					return errors.New(`that looks like the TMDB "API Key"; paste the longer "API Read Access Token" instead`)
+				}
 				cfg.TMDBToken = v
 			}
 
@@ -109,6 +112,23 @@ func loadConfigFile(path string) (config.Config, error) {
 		return cfg, err
 	}
 	return cfg, nil
+}
+
+// isShortAPIKey reports whether v is a 32-character hexadecimal value, the
+// shape of TMDB's short "API Key". cinedeck needs the longer JWT
+// "API Read Access Token" instead.
+func isShortAPIKey(v string) bool {
+	if len(v) != 32 {
+		return false
+	}
+	for _, c := range v {
+		switch {
+		case c >= '0' && c <= '9', c >= 'a' && c <= 'f', c >= 'A' && c <= 'F':
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 // readAnswer reads one line and trims surrounding whitespace.
