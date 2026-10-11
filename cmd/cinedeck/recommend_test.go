@@ -37,6 +37,7 @@ func recommendRoutes() map[string]string {
 // nonexistent config path and the discover query recorder.
 func setupRecommend(t *testing.T) (string, *[]url.Values) {
 	t.Helper()
+	t.Setenv("CINEDECK_DATA_DIR", t.TempDir())
 	queries := &[]url.Values{}
 	srv := recommendServer(t, queries)
 	setCatalogEnv(t, srv)
@@ -301,6 +302,7 @@ func TestRecommendJSON(t *testing.T) {
 func TestRecommendValidationBeforeConfig(t *testing.T) {
 	srv := discoverServer(t, recommendRoutes(), nil)
 	setCatalogEnv(t, srv)
+	t.Setenv("CINEDECK_DATA_DIR", t.TempDir())
 	t.Setenv("CINEDECK_TMDB_TOKEN", "")
 
 	cases := []struct {
@@ -788,5 +790,121 @@ func TestRecommendInHelp(t *testing.T) {
 	}
 	if !strings.Contains(out.String(), "recommend") {
 		t.Errorf("help = %q, want it to list recommend", out.String())
+	}
+}
+
+func TestRecommendFromStatusAndExclude(t *testing.T) {
+	var paths []string
+	cfg := setupPersonal(t, &paths)
+
+	lib := openTestLibrary(t)
+	ctx := context.Background()
+
+	liked := &catalog.Meta{ID: catalog.ID{Type: catalog.Movie, N: 9620}, Title: "Paycheck", GenreIDs: []int{28, 878, 53}}
+	if err := lib.UpsertItem(ctx, liked); err != nil {
+		t.Fatalf("UpsertItem 9620: %v", err)
+	}
+	if _, err := lib.Like(ctx, liked.ID); err != nil {
+		t.Fatalf("Like 9620: %v", err)
+	}
+
+	disliked := &catalog.Meta{ID: catalog.ID{Type: catalog.Movie, N: 13455}, Title: "Push", GenreIDs: []int{878, 28, 12, 53}}
+	if err := lib.UpsertItem(ctx, disliked); err != nil {
+		t.Fatalf("UpsertItem 13455: %v", err)
+	}
+	if _, err := lib.Rate(ctx, disliked.ID, 3); err != nil {
+		t.Fatalf("Rate 13455: %v", err)
+	}
+
+	watch := &catalog.Meta{ID: catalog.ID{Type: catalog.Movie, N: 348350}, Title: "Solo: A Star Wars Story", GenreIDs: []int{878, 12, 28}}
+	if err := lib.UpsertItem(ctx, watch); err != nil {
+		t.Fatalf("UpsertItem 348350: %v", err)
+	}
+	if _, err := lib.AddToWatchlist(ctx, watch.ID); err != nil {
+		t.Fatalf("AddToWatchlist 348350: %v", err)
+	}
+
+	out, _, err := runRootCmdSplit(t, "recommend", "--from", "movie:27205", "--type", "movie", "--config", cfg)
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if line := rowFor(out, "movie:13455"); line != "" {
+		t.Errorf("output lists the disliked title: %q", line)
+	}
+	if !strings.HasSuffix(strings.TrimSpace(rowFor(out, "movie:9620")), "liked") {
+		t.Errorf("movie:9620 row = %q, want it to end with liked", rowFor(out, "movie:9620"))
+	}
+	if !strings.HasSuffix(strings.TrimSpace(rowFor(out, "movie:348350")), "on watchlist") {
+		t.Errorf("movie:348350 row = %q, want it to end with on watchlist", rowFor(out, "movie:348350"))
+	}
+	if !strings.Contains(out, "STATUS") {
+		t.Errorf("output = %q, want a status column", out)
+	}
+
+	out, _, err = runRootCmdSplit(t, "recommend", "--from", "movie:27205", "--type", "movie", "--json", "--config", cfg)
+	if err != nil {
+		t.Fatalf("json Execute: %v", err)
+	}
+	var rows []map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(out), &rows); err != nil {
+		t.Fatalf("Unmarshal(%q): %v", out, err)
+	}
+	if got := fromStatusInJSON(t, rows, "movie:9620"); got != "liked" {
+		t.Errorf("movie:9620 status = %q, want liked", got)
+	}
+	if _, ok := findFromRow(t, rows, "movie:353491")["status"]; ok {
+		t.Errorf("movie:353491 has a status key, want none")
+	}
+}
+
+// fromStatusInJSON returns the "status" value of the row for id.
+func fromStatusInJSON(t *testing.T, rows []map[string]json.RawMessage, id string) string {
+	t.Helper()
+	raw, ok := findFromRow(t, rows, id)["status"]
+	if !ok {
+		t.Fatalf("row %s has no status key", id)
+	}
+	var s string
+	if err := json.Unmarshal(raw, &s); err != nil {
+		t.Fatalf("status of %s: %v", id, err)
+	}
+	return s
+}
+
+// findFromRow returns the decoded JSON row whose id is id.
+func findFromRow(t *testing.T, rows []map[string]json.RawMessage, id string) map[string]json.RawMessage {
+	t.Helper()
+	for _, r := range rows {
+		var got string
+		if err := json.Unmarshal(r["id"], &got); err != nil {
+			continue
+		}
+		if got == id {
+			return r
+		}
+	}
+	t.Fatalf("no row for %s in %v", id, rows)
+	return nil
+}
+
+func TestRecommendFromNoLibraryCreatesNothing(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "not-yet")
+	t.Setenv("CINEDECK_DATA_DIR", dir)
+	srv := recommendServer(t, nil)
+	setCatalogEnv(t, srv)
+	cfg := filepath.Join(t.TempDir(), "none.toml")
+
+	out, err := runRootCmd(t, "recommend", "--from", "movie:27205", "--type", "movie", "--config", cfg)
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if strings.Contains(out, "STATUS") {
+		t.Errorf("output = %q, want no status column without a library", out)
+	}
+	if rows := dataRows(out); len(rows) != 9 {
+		t.Errorf("rows = %d, want 9", len(rows))
+	}
+	if _, statErr := os.Stat(dir); !errors.Is(statErr, os.ErrNotExist) {
+		t.Errorf("Stat(%s) = %v, want os.ErrNotExist", dir, statErr)
 	}
 }

@@ -99,7 +99,7 @@ func TestMergeSame(t *testing.T) {
 		rel(catalog.ID{Type: catalog.Movie, N: 6}, "E", 5000),
 	}
 
-	got := mergeSame(self, "X", recs, sims, 10)
+	got := mergeSame(self, "X", recs, sims, nil, 10)
 	wantIDs := []catalog.ID{
 		{Type: catalog.Movie, N: 2},
 		{Type: catalog.Movie, N: 3},
@@ -123,10 +123,10 @@ func TestMergeSame(t *testing.T) {
 		t.Errorf("reasons = %v, want %v", gotReasons, wantReasons)
 	}
 
-	if ids := pickIDs(mergeSame(self, "X", recs, sims, 3)); !reflect.DeepEqual(ids, wantIDs[:3]) {
+	if ids := pickIDs(mergeSame(self, "X", recs, sims, nil, 3)); !reflect.DeepEqual(ids, wantIDs[:3]) {
 		t.Errorf("limit 3 ids = %v, want %v", ids, wantIDs[:3])
 	}
-	if ids := pickIDs(mergeSame(self, "X", recs, sims, 1)); !reflect.DeepEqual(ids, wantIDs[:1]) {
+	if ids := pickIDs(mergeSame(self, "X", recs, sims, nil, 1)); !reflect.DeepEqual(ids, wantIDs[:1]) {
 		t.Errorf("limit 1 ids = %v, want %v", ids, wantIDs[:1])
 	}
 }
@@ -134,7 +134,7 @@ func TestMergeSame(t *testing.T) {
 func TestMergeSameCopiesFields(t *testing.T) {
 	self := catalog.ID{Type: catalog.Movie, N: 1}
 	recs := []catalog.Related{rel(catalog.ID{Type: catalog.Movie, N: 2}, "A", 10)}
-	got := mergeSame(self, "X", recs, nil, 10)
+	got := mergeSame(self, "X", recs, nil, nil, 10)
 	if len(got) != 1 {
 		t.Fatalf("len = %d, want 1", len(got))
 	}
@@ -144,7 +144,7 @@ func TestMergeSameCopiesFields(t *testing.T) {
 }
 
 func TestMergeSameEmpty(t *testing.T) {
-	got := mergeSame(catalog.ID{Type: catalog.Movie, N: 1}, "X", nil, nil, 10)
+	got := mergeSame(catalog.ID{Type: catalog.Movie, N: 1}, "X", nil, nil, nil, 10)
 	if got == nil {
 		t.Fatal("mergeSame = nil, want a non-nil empty slice")
 	}
@@ -180,7 +180,7 @@ func TestFromSameTypeOnly(t *testing.T) {
 	if res.Source != m {
 		t.Errorf("Source = %p, want %p", res.Source, m)
 	}
-	want := mergeSame(m.ID, m.Title, recs, sims, 10)
+	want := mergeSame(m.ID, m.Title, recs, sims, nil, 10)
 	if !reflect.DeepEqual(res.Picks, want) {
 		t.Errorf("Picks = %+v, want %+v", res.Picks, want)
 	}
@@ -592,7 +592,7 @@ func TestCrossPicksNoKeywords(t *testing.T) {
 		},
 	}
 
-	picks, err := crossPicks(ctx, src, m, catalog.Movie, 10)
+	picks, err := crossPicks(ctx, src, m, catalog.Movie, nil, 10)
 	if err != nil {
 		t.Fatalf("crossPicks: %v", err)
 	}
@@ -604,5 +604,45 @@ func TestCrossPicksNoKeywords(t *testing.T) {
 	}
 	if picks[0].Reason != "shares genres with Y" {
 		t.Errorf("reason = %q, want %q", picks[0].Reason, "shares genres with Y")
+	}
+}
+
+func TestFromExclude(t *testing.T) {
+	ctx := context.Background()
+	m := namedMeta(catalog.ID{Type: catalog.Movie, N: 1}, "X", []int{28, 878, 12}, kw(1, "one"), kw(2, "two"))
+	src := &fakeSource{
+		metas: map[catalog.ID]*catalog.Meta{
+			m.ID:     m,
+			tvID(50): namedMeta(tvID(50), "T50", []int{10765}, kw(1, "one"), kw(2, "two")),
+			tvID(51): namedMeta(tvID(51), "T51", []int{10765}, kw(1, "one"), kw(2, "two")),
+		},
+		recs: map[catalog.ID][]catalog.Related{m.ID: {
+			rel(catalog.ID{Type: catalog.Movie, N: 2}, "R2", 5000),
+			rel(catalog.ID{Type: catalog.Movie, N: 3}, "R3", 5000),
+		}},
+		sims: map[catalog.ID][]catalog.Related{m.ID: {
+			rel(catalog.ID{Type: catalog.Movie, N: 4}, "S4", 500),
+		}},
+		discover: func(q catalog.DiscoverQuery) []catalog.Related {
+			return []catalog.Related{
+				relG(tvID(50), "T50", 100, 10765),
+				relG(tvID(51), "T51", 100, 10765),
+			}
+		},
+	}
+	exclude := map[catalog.ID]bool{
+		{Type: catalog.Movie, N: 2}: true,
+		tvID(50):                    true,
+	}
+
+	// Limit 1 per type: the excluded ids must be skipped before the limit, so
+	// the next entry of each list takes their place.
+	res, err := From(ctx, src, m.ID, FromOptions{Limit: 1, Exclude: exclude})
+	if err != nil {
+		t.Fatalf("From: %v", err)
+	}
+	wantIDs := []catalog.ID{{Type: catalog.Movie, N: 3}, tvID(51)}
+	if got := pickIDs(res.Picks); !reflect.DeepEqual(got, wantIDs) {
+		t.Errorf("ids = %v, want %v", got, wantIDs)
 	}
 }

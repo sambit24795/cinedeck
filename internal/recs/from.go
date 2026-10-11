@@ -47,10 +47,10 @@ func ParseTypeFilter(s string) (catalog.MediaType, error) {
 }
 
 // mergeSame builds the same-type list: all recs in order, then the sims with
-// Votes >= MinSimilarVotes in order; the id `self` and duplicates (by ID) are
-// skipped; the first `limit` entries are kept. Reasons: recs get
+// Votes >= MinSimilarVotes in order; the id `self`, duplicates (by ID) and ids
+// in exclude are skipped; the first `limit` entries are kept. Reasons: recs get
 // "TMDB recommends it for <title>", sims get "similar to <title>".
-func mergeSame(self catalog.ID, title string, recs, sims []catalog.Related, limit int) []Pick {
+func mergeSame(self catalog.ID, title string, recs, sims []catalog.Related, exclude map[catalog.ID]bool, limit int) []Pick {
 	picks := []Pick{}
 	seen := map[catalog.ID]bool{self: true}
 
@@ -59,7 +59,7 @@ func mergeSame(self catalog.ID, title string, recs, sims []catalog.Related, limi
 			if len(picks) >= limit {
 				return
 			}
-			if seen[r.ID] {
+			if seen[r.ID] || exclude[r.ID] {
 				continue
 			}
 			seen[r.ID] = true
@@ -88,8 +88,9 @@ func mergeSame(self catalog.ID, title string, recs, sims []catalog.Related, limi
 
 // FromOptions configures From.
 type FromOptions struct {
-	Type  catalog.MediaType // "" = both types; Movie or TV = only that type
-	Limit int               // per type; the caller has validated it with CheckLimit
+	Type    catalog.MediaType   // "" = both types; Movie or TV = only that type
+	Limit   int                 // per type; the caller has validated it with CheckLimit
+	Exclude map[catalog.ID]bool // ids the caller wants hidden (for example disliked titles)
 }
 
 // FromResult is the result of From.
@@ -124,11 +125,11 @@ func From(ctx context.Context, src Source, id catalog.ID, o FromOptions) (*FromR
 			if err != nil {
 				return nil, err
 			}
-			picks = append(picks, mergeSame(id, m.Title, recs, sims, o.Limit)...)
+			picks = append(picks, mergeSame(id, m.Title, recs, sims, o.Exclude, o.Limit)...)
 			continue
 		}
 
-		cross, err := crossPicks(ctx, src, m, t, o.Limit)
+		cross, err := crossPicks(ctx, src, m, t, o.Exclude, o.Limit)
 		if err != nil {
 			return nil, err
 		}
@@ -211,11 +212,12 @@ func sharedKeywords(source, cm *catalog.Meta) (count int, names []string) {
 }
 
 // crossPicks finds titles of type target that share keywords and genres with m
-// (target differs from m.ID.Type). Shared genres come from the discover list
-// entries; shared keywords are checked on the candidate details. A candidate
-// is kept when it shares at least two keywords, or one keyword and at least two
-// genres. When m has no keywords only the genre query runs.
-func crossPicks(ctx context.Context, src Source, m *catalog.Meta, target catalog.MediaType, limit int) ([]Pick, error) {
+// (target differs from m.ID.Type). Ids in exclude are skipped. Shared genres
+// come from the discover list entries; shared keywords are checked on the
+// candidate details. A candidate is kept when it shares at least two keywords,
+// or one keyword and at least two genres. When m has no keywords only the genre
+// query runs.
+func crossPicks(ctx context.Context, src Source, m *catalog.Meta, target catalog.MediaType, exclude map[catalog.ID]bool, limit int) ([]Pick, error) {
 	keys := CanonGenres(m.ID.Type, m.GenreIDs)
 	ids := GenreIDsFor(target, keys)
 
@@ -231,7 +233,7 @@ func crossPicks(ctx context.Context, src Source, m *catalog.Meta, target catalog
 	seen := map[catalog.ID]bool{}
 	addPool := func(results []catalog.Related, fromKeywordQuery bool) {
 		for _, r := range results {
-			if seen[r.ID] {
+			if seen[r.ID] || exclude[r.ID] {
 				continue
 			}
 			seen[r.ID] = true

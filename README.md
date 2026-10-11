@@ -86,7 +86,7 @@ cinedeck recommend
 cinedeck recommend --type movie --limit 5
 ```
 
-Personal recommendations skip everything you liked, rated or watched, and never suggest a title you rated 4 or lower. They use at most 32 TMDB requests per run (all cached for 24 hours) and work best after you have liked or rated a handful of titles.
+Personal recommendations skip everything you liked, rated or watched, and never suggest a title you rated 4 or lower. They use at most 32 TMDB requests per run (all cached for 24 hours) and work best after you have liked or rated a handful of titles. With `--from`, titles you rated 4 or lower are hidden, and titles you liked, rated, watched or put on the watchlist are marked in a status column.
 
 See where a title is available (by id or by title). The region comes from your config; `--region` overrides it:
 
