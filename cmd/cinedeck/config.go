@@ -63,7 +63,12 @@ func newConfigInitCmd() *cobra.Command {
 			out := cmd.OutOrStdout()
 			in := bufio.NewReader(cmd.InOrStdin())
 
-			fmt.Fprintf(out, "TMDB token [%s]: ", cfg.TMDBToken)
+			// The token is a secret, so the prompt never echoes it.
+			if cfg.TMDBToken == "" {
+				fmt.Fprint(out, "TMDB token: ")
+			} else {
+				fmt.Fprint(out, "TMDB token [keep current]: ")
+			}
 			if v, err := readAnswer(in); err == nil && v != "" {
 				cfg.TMDBToken = v
 			}

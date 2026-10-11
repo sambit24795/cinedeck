@@ -61,11 +61,16 @@ func TestConfigInitKeepsExistingValues(t *testing.T) {
 	}
 
 	second := newRootCmd()
-	second.SetOut(&bytes.Buffer{})
+	var secondOut bytes.Buffer
+	second.SetOut(&secondOut)
 	second.SetIn(strings.NewReader("\n\n\n"))
 	second.SetArgs([]string{"config", "init", "--config", path})
 	if err := second.Execute(); err != nil {
 		t.Fatalf("second Execute: %v", err)
+	}
+
+	if strings.Contains(secondOut.String(), "abc") {
+		t.Errorf("prompt echoed the stored token: %q", secondOut.String())
 	}
 
 	cfg, err := config.Load(path)
