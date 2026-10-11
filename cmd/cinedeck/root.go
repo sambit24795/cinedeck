@@ -15,5 +15,8 @@ func newRootCmd() *cobra.Command {
 	}
 	cmd.PersistentFlags().Bool("json", false, "output as JSON")
 	cmd.PersistentFlags().String("region", "", "region code")
+	cmd.PersistentFlags().String("config", "", "config file path")
+	_ = cmd.PersistentFlags().MarkHidden("config")
+	cmd.AddCommand(newConfigCmd())
 	return cmd
 }
