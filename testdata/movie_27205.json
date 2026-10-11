@@ -1,0 +1,21 @@
+{
+  "id": 27205,
+  "title": "Inception",
+  "release_date": "2010-07-15",
+  "runtime": 148,
+  "vote_average": 8.4,
+  "overview": "Cobb, a skilled thief who commits corporate espionage by infiltrating the subconscious of his targets, is offered a chance to regain his old life.",
+  "genres": [{"id": 28, "name": "Action"}, {"id": 878, "name": "Science Fiction"}, {"id": 12, "name": "Adventure"}],
+  "credits": {
+    "cast": [
+      {"id": 6193, "name": "Leonardo DiCaprio", "character": "Dom Cobb", "order": 0},
+      {"id": 24045, "name": "Joseph Gordon-Levitt", "character": "Arthur", "order": 1},
+      {"id": 3899, "name": "Ken Watanabe", "character": "Saito", "order": 2}
+    ],
+    "crew": [
+      {"id": 525, "name": "Christopher Nolan", "job": "Director", "department": "Directing"},
+      {"id": 525, "name": "Christopher Nolan", "job": "Writer", "department": "Writing"},
+      {"id": 947, "name": "Hans Zimmer", "job": "Original Music Composer", "department": "Sound"}
+    ]
+  }
+}

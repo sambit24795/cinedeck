@@ -1,0 +1,19 @@
+{
+  "id": 1399,
+  "name": "Game of Thrones",
+  "first_air_date": "2011-04-17",
+  "number_of_seasons": 8,
+  "number_of_episodes": 73,
+  "episode_run_time": [60],
+  "vote_average": 8.5,
+  "overview": "Seven noble families fight for control of the mythical land of Westeros.",
+  "genres": [{"id": 10765, "name": "Sci-Fi & Fantasy"}, {"id": 18, "name": "Drama"}, {"id": 10759, "name": "Action & Adventure"}],
+  "created_by": [{"id": 9813, "name": "David Benioff"}, {"id": 228068, "name": "D. B. Weiss"}],
+  "credits": {
+    "cast": [
+      {"id": 22970, "name": "Peter Dinklage", "character": "Tyrion Lannister", "order": 0},
+      {"id": 239019, "name": "Kit Harington", "character": "Jon Snow", "order": 1}
+    ],
+    "crew": []
+  }
+}

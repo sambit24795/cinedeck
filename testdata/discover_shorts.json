@@ -1,0 +1,9 @@
+{
+  "page": 1,
+  "results": [
+    {"id": 13042, "title": "Presto", "release_date": "2008-06-18", "vote_average": 7.9, "vote_count": 1500, "popularity": 12.4, "genre_ids": [16, 35, 10751], "overview": "A magician and his hungry rabbit battle on stage."},
+    {"id": 399106, "title": "Piper", "release_date": "2016-06-16", "vote_average": 8.2, "vote_count": 1700, "popularity": 14.0, "genre_ids": [16, 10751], "overview": "A hungry sandpiper hatchling ventures from her nest for the first time."}
+  ],
+  "total_pages": 1,
+  "total_results": 2
+}
