@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -267,23 +268,35 @@ func TestLibraryReadsOffline(t *testing.T) {
 		t.Fatalf("Close: %v", err)
 	}
 
-	t.Setenv("CINEDECK_TMDB_TOKEN", "")
-	requests := 0
+	// The server stays up and counts requests, so a command that did call
+	// TMDB would be seen. Run once without a token and once with one.
+	var requests atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requests++
+		requests.Add(1)
+		http.NotFound(w, r)
 	}))
-	url := srv.URL
-	srv.Close()
-	t.Setenv("CINEDECK_TMDB_URL", url)
+	t.Cleanup(srv.Close)
+	t.Setenv("CINEDECK_TMDB_URL", srv.URL)
 
-	if _, err := runRootCmd(t, "watchlist", "ls", "--config", cfg); err != nil {
-		t.Fatalf("watchlist ls Execute: %v", err)
+	for _, token := range []string{"", "tok"} {
+		t.Setenv("CINEDECK_TMDB_TOKEN", token)
+		out, err := runRootCmd(t, "watchlist", "ls", "--config", cfg)
+		if err != nil {
+			t.Fatalf("watchlist ls (token %q) Execute: %v", token, err)
+		}
+		if !strings.Contains(out, "Inception") {
+			t.Errorf("watchlist ls output = %q, want the stored title", out)
+		}
+		out, err = runRootCmd(t, "history", "--config", cfg)
+		if err != nil {
+			t.Fatalf("history (token %q) Execute: %v", token, err)
+		}
+		if !strings.Contains(out, "Breaking Bad") {
+			t.Errorf("history output = %q, want the stored title", out)
+		}
 	}
-	if _, err := runRootCmd(t, "history", "--config", cfg); err != nil {
-		t.Fatalf("history Execute: %v", err)
-	}
-	if requests != 0 {
-		t.Errorf("closed server saw %d requests, want 0", requests)
+	if n := requests.Load(); n != 0 {
+		t.Errorf("server saw %d requests, want 0", n)
 	}
 }
 

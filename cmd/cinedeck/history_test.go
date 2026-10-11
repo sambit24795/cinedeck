@@ -51,8 +51,10 @@ func TestHistory(t *testing.T) {
 			t.Errorf("Inception row = %q, want it to contain %q", lines[2], want)
 		}
 	}
-	if !strings.Contains(lines[1], "-") {
-		t.Errorf("Breaking Bad row = %q, want it to contain %q", lines[1], "-")
+	// The date column also contains "-", so check the RATED and LIKED cells.
+	cells := strings.Fields(lines[1])
+	if len(cells) < 3 || cells[len(cells)-3] != "-" || cells[len(cells)-2] != "-" {
+		t.Errorf("Breaking Bad row = %q, want rated and liked cells to be %q", lines[1], "-")
 	}
 }
 
