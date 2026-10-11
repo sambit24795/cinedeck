@@ -24,6 +24,7 @@ type Client struct {
 	baseURL   string
 	http      *http.Client
 	retryWait time.Duration
+	cache     *cache
 }
 
 // Option configures a Client.
@@ -43,6 +44,14 @@ func WithHTTPClient(h *http.Client) Option {
 // default is 1 second.
 func WithRetryWait(d time.Duration) Option {
 	return func(c *Client) { c.retryWait = d }
+}
+
+// WithCache enables the on-disk response cache in dir with the given ttl.
+// Without this option responses are not cached.
+func WithCache(dir string, ttl time.Duration) Option {
+	return func(c *Client) {
+		c.cache = &cache{dir: dir, ttl: ttl, now: time.Now}
+	}
 }
 
 // New returns a Client that authenticates with token.
@@ -75,6 +84,13 @@ func (c *Client) get(ctx context.Context, path string, q url.Values, out any) er
 	u := c.baseURL + path
 	if len(q) > 0 {
 		u += "?" + q.Encode()
+	}
+
+	key := cacheKey(path, q)
+	if c.cache != nil {
+		if body, ok := c.cache.get(key); ok {
+			return json.Unmarshal(body, out)
+		}
 	}
 
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
@@ -119,6 +135,11 @@ func (c *Client) get(ctx context.Context, path string, q url.Values, out any) er
 			return &APIError{Status: resp.StatusCode, Message: statusMessage(body)}
 		}
 
+		if c.cache != nil {
+			if err := c.cache.put(key, body); err != nil {
+				return err
+			}
+		}
 		return json.Unmarshal(body, out)
 	}
 	return nil
