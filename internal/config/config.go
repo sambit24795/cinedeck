@@ -80,5 +80,10 @@ func Save(path string, c Config) error {
 		return err
 	}
 
-	return os.WriteFile(path, buf.Bytes(), 0o600)
+	if err := os.WriteFile(path, buf.Bytes(), 0o600); err != nil {
+		return err
+	}
+	// os.WriteFile only applies the mode when it creates the file, so tighten
+	// the permissions in case the file already existed with a looser mode.
+	return os.Chmod(path, 0o600)
 }
