@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -25,6 +26,38 @@ func (c *Client) Genres(ctx context.Context, t MediaType) (map[string]int, error
 		genres[strings.ToLower(g.Name)] = g.ID
 	}
 	return genres, nil
+}
+
+// genreIDs resolves genre names to ids for t, in the order given, without
+// duplicates. Names are matched ignoring letter case and surrounding spaces.
+func (c *Client) genreIDs(ctx context.Context, t MediaType, names []string) ([]int, error) {
+	if len(names) == 0 {
+		return nil, nil
+	}
+
+	genres, err := c.Genres(ctx, t)
+	if err != nil {
+		return nil, err
+	}
+
+	ids := make([]int, 0, len(names))
+	seen := make(map[int]bool, len(names))
+	for _, name := range names {
+		id, ok := genres[strings.ToLower(strings.TrimSpace(name))]
+		if !ok {
+			available := make([]string, 0, len(genres))
+			for key := range genres {
+				available = append(available, key)
+			}
+			sort.Strings(available)
+			return nil, fmt.Errorf("unknown genre %q for %s; available: %s", name, t, strings.Join(available, ", "))
+		}
+		if !seen[id] {
+			seen[id] = true
+			ids = append(ids, id)
+		}
+	}
+	return ids, nil
 }
 
 // ShortsOptions filters the short-movie list.

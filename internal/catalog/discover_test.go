@@ -73,6 +73,119 @@ func TestShorts(t *testing.T) {
 	}
 }
 
+// genreServer serves the genre list fixtures and records every request path.
+func genreServer(t *testing.T, paths *[]string) *httptest.Server {
+	t.Helper()
+	tvBody, err := os.ReadFile("../../testdata/genre_tv_list.json")
+	if err != nil {
+		t.Fatalf("ReadFile: %v", err)
+	}
+	movieBody, err := os.ReadFile("../../testdata/genre_movie_list.json")
+	if err != nil {
+		t.Fatalf("ReadFile: %v", err)
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		*paths = append(*paths, r.URL.Path)
+		switch r.URL.Path {
+		case "/genre/tv/list":
+			w.Write(tvBody)
+		case "/genre/movie/list":
+			w.Write(movieBody)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(srv.Close)
+	return srv
+}
+
+func TestGenreIDs(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("tv names", func(t *testing.T) {
+		var paths []string
+		srv := genreServer(t, &paths)
+		c := New("tok", WithBaseURL(srv.URL))
+		got, err := c.genreIDs(ctx, TV, []string{"Animation", " drama "})
+		if err != nil {
+			t.Fatalf("genreIDs: %v", err)
+		}
+		if len(got) != 2 || got[0] != 16 || got[1] != 18 {
+			t.Errorf("got = %v, want [16 18]", got)
+		}
+	})
+
+	t.Run("tv duplicate", func(t *testing.T) {
+		var paths []string
+		srv := genreServer(t, &paths)
+		c := New("tok", WithBaseURL(srv.URL))
+		got, err := c.genreIDs(ctx, TV, []string{"Drama", "drama"})
+		if err != nil {
+			t.Fatalf("genreIDs: %v", err)
+		}
+		if len(got) != 1 || got[0] != 18 {
+			t.Errorf("got = %v, want [18]", got)
+		}
+	})
+
+	t.Run("movie path", func(t *testing.T) {
+		var paths []string
+		srv := genreServer(t, &paths)
+		c := New("tok", WithBaseURL(srv.URL))
+		got, err := c.genreIDs(ctx, Movie, []string{"Animation", "Drama"})
+		if err != nil {
+			t.Fatalf("genreIDs: %v", err)
+		}
+		if len(got) != 2 || got[0] != 16 || got[1] != 18 {
+			t.Errorf("got = %v, want [16 18]", got)
+		}
+		if len(paths) != 1 || paths[0] != "/genre/movie/list" {
+			t.Errorf("paths = %v, want [/genre/movie/list]", paths)
+		}
+	})
+
+	t.Run("unknown tv", func(t *testing.T) {
+		var paths []string
+		srv := genreServer(t, &paths)
+		c := New("tok", WithBaseURL(srv.URL))
+		_, err := c.genreIDs(ctx, TV, []string{"Action"})
+		if err == nil {
+			t.Fatal("err = nil, want error")
+		}
+		for _, want := range []string{`unknown genre "Action" for tv`, "action & adventure"} {
+			if !strings.Contains(err.Error(), want) {
+				t.Errorf("err = %v, want it to contain %q", err, want)
+			}
+		}
+	})
+
+	t.Run("unknown movie", func(t *testing.T) {
+		var paths []string
+		srv := genreServer(t, &paths)
+		c := New("tok", WithBaseURL(srv.URL))
+		_, err := c.genreIDs(ctx, Movie, []string{"Sci-Fi & Fantasy"})
+		if err == nil || !strings.Contains(err.Error(), "unknown genre") {
+			t.Fatalf("err = %v, want it to contain %q", err, "unknown genre")
+		}
+	})
+
+	t.Run("no names", func(t *testing.T) {
+		var paths []string
+		srv := genreServer(t, &paths)
+		c := New("tok", WithBaseURL(srv.URL))
+		got, err := c.genreIDs(ctx, TV, nil)
+		if err != nil {
+			t.Fatalf("genreIDs: %v", err)
+		}
+		if len(got) != 0 {
+			t.Errorf("got = %v, want empty", got)
+		}
+		if len(paths) != 0 {
+			t.Errorf("paths = %v, want no requests", paths)
+		}
+	})
+}
+
 func TestShortsUnknownGenre(t *testing.T) {
 	genreBody, err := os.ReadFile("../../testdata/genre_movie_list.json")
 	if err != nil {
