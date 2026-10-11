@@ -32,5 +32,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newUnrateCmd())
 	cmd.AddCommand(newWatchedCmd())
 	cmd.AddCommand(newUnwatchCmd())
+	cmd.AddCommand(newWatchlistCmd())
+	cmd.AddCommand(newHistoryCmd())
 	return cmd
 }
