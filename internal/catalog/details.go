@@ -64,6 +64,8 @@ func (c *Client) Details(ctx context.Context, id ID) (*Details, error) {
 		ID:       id,
 		Rating:   resp.VoteAverage,
 		Overview: resp.Overview,
+		Genres:   []string{}, // never null in JSON
+		Cast:     []string{},
 	}
 	for _, g := range resp.Genres {
 		d.Genres = append(d.Genres, g.Name)

@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -86,5 +87,26 @@ func TestDetailsTV(t *testing.T) {
 	}
 	if d.Runtime != 0 {
 		t.Errorf("Runtime = %d, want 0", d.Runtime)
+	}
+}
+
+func TestDetailsEmptyListsEncodeAsArrays(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"title":"Bare"}`))
+	}))
+	defer srv.Close()
+
+	d, err := New("tok", WithBaseURL(srv.URL)).Details(context.Background(), ID{Movie, 1})
+	if err != nil {
+		t.Fatalf("Details: %v", err)
+	}
+	b, err := json.Marshal(d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`"genres":[]`, `"cast":[]`} {
+		if !strings.Contains(string(b), want) {
+			t.Errorf("json = %s, want it to contain %s", b, want)
+		}
 	}
 }
