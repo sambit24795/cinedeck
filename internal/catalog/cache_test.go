@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"path/filepath"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -98,5 +99,26 @@ func TestCacheDoesNotStoreErrors(t *testing.T) {
 	}
 	if got := atomic.LoadInt32(&calls); got != 2 {
 		t.Errorf("calls = %d, want 2", got)
+	}
+}
+
+func TestCacheWriteFailureDoesNotFailRequest(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"ok":true}`))
+	}))
+	defer srv.Close()
+
+	// A regular file where the cache directory should be makes every write fail.
+	dir := filepath.Join(t.TempDir(), "notadir")
+	if err := os.WriteFile(dir, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	c := New("tok", WithBaseURL(srv.URL), WithCache(dir, time.Hour))
+	var out map[string]bool
+	if err := c.get(context.Background(), "/x", nil, &out); err != nil {
+		t.Fatalf("get: %v, want nil when only the cache write fails", err)
+	}
+	if !out["ok"] {
+		t.Errorf("out = %v, want ok=true", out)
 	}
 }

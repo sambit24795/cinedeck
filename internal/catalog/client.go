@@ -136,9 +136,9 @@ func (c *Client) get(ctx context.Context, path string, q url.Values, out any) er
 		}
 
 		if c.cache != nil {
-			if err := c.cache.put(key, body); err != nil {
-				return err
-			}
+			// The cache is best-effort: a failed write must not fail a
+			// successful response.
+			_ = c.cache.put(key, body)
 		}
 		return json.Unmarshal(body, out)
 	}
