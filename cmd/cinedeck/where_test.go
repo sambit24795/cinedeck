@@ -3,9 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -35,21 +33,7 @@ func newWhereServer(t *testing.T) (*httptest.Server, *[]string) {
 		"/movie/27205/watch/providers": "watch_movie_27205.json",
 		"/tv/1399/watch/providers":     "watch_tv_1399.json",
 	}
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		*paths = append(*paths, r.URL.Path)
-		name, ok := routes[r.URL.Path]
-		if !ok {
-			http.NotFound(w, r)
-			return
-		}
-		body, err := os.ReadFile("../../testdata/" + name)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Write(body)
-	}))
-	t.Cleanup(srv.Close)
+	srv := fixtureServer(t, routes, paths)
 	return srv, paths
 }
 

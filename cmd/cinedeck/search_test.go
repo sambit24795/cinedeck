@@ -12,10 +12,18 @@ import (
 )
 
 // fixtureServer starts a server that serves the named testdata files for the
-// given request paths.
-func fixtureServer(t *testing.T, routes map[string]string) *httptest.Server {
+// given request paths. When a recorder is passed, every requested path is
+// appended to it.
+func fixtureServer(t *testing.T, routes map[string]string, paths ...*[]string) *httptest.Server {
 	t.Helper()
+	var recorder *[]string
+	if len(paths) > 0 {
+		recorder = paths[0]
+	}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if recorder != nil {
+			*recorder = append(*recorder, r.URL.Path)
+		}
 		name, ok := routes[r.URL.Path]
 		if !ok {
 			http.NotFound(w, r)
