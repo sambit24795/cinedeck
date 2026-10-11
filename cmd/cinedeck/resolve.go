@@ -30,7 +30,11 @@ func resolveID(cmd *cobra.Command, c *catalog.Client, arg string, first bool) (c
 
 	out := cmd.OutOrStdout()
 	for i, r := range results {
-		fmt.Fprintf(out, "%d) %s (%d) [%s]\n", i+1, r.Title, r.Year, r.ID)
+		title := r.Title
+		if r.Year > 0 {
+			title = fmt.Sprintf("%s (%d)", r.Title, r.Year)
+		}
+		fmt.Fprintf(out, "%d) %s [%s]\n", i+1, title, r.ID)
 	}
 	fmt.Fprint(out, "Pick a number: ")
 

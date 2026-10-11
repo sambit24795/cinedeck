@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"net/http"
 	"net/http/httptest"
 	"path/filepath"
 	"strings"
@@ -90,5 +91,26 @@ func TestInfoJSON(t *testing.T) {
 	}
 	if got.ID != "movie:27205" {
 		t.Errorf("id = %q, want %q", got.ID, "movie:27205")
+	}
+}
+
+func TestInfoSkipsEmptyFields(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"title":"Obscure","release_date":"","vote_average":0,"overview":"Plot."}`))
+	}))
+	t.Cleanup(srv.Close)
+	setCatalogEnv(t, srv)
+
+	out, err := runRootCmd(t, "info", "movie:1", "--config", filepath.Join(t.TempDir(), "none.toml"))
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if !strings.HasPrefix(out, "Obscure\n") {
+		t.Errorf("output = %q, want first line %q", out, "Obscure")
+	}
+	for _, bad := range []string{"(0)", "Rating"} {
+		if strings.Contains(out, bad) {
+			t.Errorf("output = %q, want it not to contain %q", out, bad)
+		}
 	}
 }

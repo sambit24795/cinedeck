@@ -41,8 +41,14 @@ func newInfoCmd() *cobra.Command {
 // printDetails writes d as one field per line, then the overview.
 func printDetails(cmd *cobra.Command, d *catalog.Details) {
 	out := cmd.OutOrStdout()
-	fmt.Fprintf(out, "%s (%d)\n", d.Title, d.Year)
-	fmt.Fprintf(out, "Rating: %.1f\n", d.Rating)
+	if d.Year > 0 {
+		fmt.Fprintf(out, "%s (%d)\n", d.Title, d.Year)
+	} else {
+		fmt.Fprintln(out, d.Title)
+	}
+	if d.Rating > 0 {
+		fmt.Fprintf(out, "Rating: %.1f\n", d.Rating)
+	}
 	if len(d.Genres) > 0 {
 		fmt.Fprintf(out, "Genres: %s\n", strings.Join(d.Genres, ", "))
 	}
