@@ -19,18 +19,27 @@ directory):
 cinedeck config init
 ```
 
-The commands below are planned for the next milestone and are not available
-yet. Search for a movie or show:
+Search for a movie or show:
 
 ```
 cinedeck search inception
 ```
 
-Show details for a title:
+Show details for a title, by id or by title:
 
 ```
 cinedeck info movie:27205
+cinedeck info inception --first
 ```
+
+Find short films (40 minutes or less) and see what is trending:
+
+```
+cinedeck shorts --genre animation --year 2008
+cinedeck trending --type tv
+```
+
+Add `--json` to any of these for machine-readable output.
 
 ## Attribution
 
