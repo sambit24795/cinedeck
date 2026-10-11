@@ -24,4 +24,5 @@ type Pick struct {
 	Rating float64    `json:"rating"` // TMDB vote_average
 	Reason string     `json:"reason"`
 	Score  float64    `json:"score,omitempty"` // personal recommendations only
+	Poster string     `json:"poster,omitempty"`
 }

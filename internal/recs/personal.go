@@ -61,6 +61,7 @@ func Personal(ctx context.Context, src Source, entries []library.Entry, o Person
 				ID:         r.ID,
 				Title:      r.Title,
 				Year:       r.Year,
+				Poster:     r.Poster,
 				Rating:     r.Rating,
 				Votes:      r.Votes,
 				Popularity: r.Popularity,
@@ -68,6 +69,8 @@ func Personal(ctx context.Context, src Source, entries []library.Entry, o Person
 			}
 			pool[r.ID] = c
 			order = append(order, r.ID)
+		} else if c.Poster == "" {
+			c.Poster = r.Poster
 		}
 		return c
 	}
@@ -180,6 +183,7 @@ func Personal(ctx context.Context, src Source, entries []library.Entry, o Person
 			Rating: s.Rating,
 			Reason: Reason(used, s.Candidate),
 			Score:  s.Score,
+			Poster: s.Poster,
 		})
 	}
 

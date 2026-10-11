@@ -69,6 +69,7 @@ func mergeSame(self catalog.ID, title string, recs, sims []catalog.Related, excl
 				Year:   r.Year,
 				Rating: r.Rating,
 				Reason: reason,
+				Poster: r.Poster,
 			})
 		}
 	}
@@ -164,7 +165,7 @@ type poolEntry struct {
 
 // pickFrom copies a list entry into a Pick with the given reason.
 func pickFrom(r catalog.Related, reason string) Pick {
-	return Pick{ID: r.ID, Title: r.Title, Year: r.Year, Rating: r.Rating, Reason: reason}
+	return Pick{ID: r.ID, Title: r.Title, Year: r.Year, Rating: r.Rating, Reason: reason, Poster: r.Poster}
 }
 
 // sharedGenreCount returns how many of the source's canonical genres appear in

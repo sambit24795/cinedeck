@@ -27,6 +27,7 @@ type Candidate struct {
 	ID           catalog.ID
 	Title        string
 	Year         int
+	Poster       string
 	Genres       []string // canonical genre keys
 	Keywords     []int
 	Cast         []int
