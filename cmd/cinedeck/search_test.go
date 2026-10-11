@@ -104,3 +104,32 @@ func TestSearchCommandNoToken(t *testing.T) {
 		t.Errorf("err = %v, want it to contain %q", err, "config init")
 	}
 }
+
+func TestSearchNoResults(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"results":[]}`))
+	}))
+	t.Cleanup(srv.Close)
+	setCatalogEnv(t, srv)
+	cfg := filepath.Join(t.TempDir(), "none.toml")
+
+	out, err := runRootCmd(t, "search", "zzz", "--config", cfg)
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if strings.TrimSpace(out) != "No results." {
+		t.Errorf("text output = %q, want %q", out, "No results.")
+	}
+
+	out, err = runRootCmd(t, "search", "zzz", "--json", "--config", cfg)
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	var got []map[string]any
+	if err := json.Unmarshal([]byte(out), &got); err != nil {
+		t.Fatalf("--json output %q is not JSON: %v", out, err)
+	}
+	if got == nil || len(got) != 0 {
+		t.Errorf("--json output = %q, want an empty array", out)
+	}
+}

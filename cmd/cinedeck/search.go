@@ -31,12 +31,15 @@ func newSearchCmd() *cobra.Command {
 
 // printResults writes results as a table, or as JSON when --json is set.
 func printResults(cmd *cobra.Command, results []catalog.Result) error {
+	if jsonOut, _ := cmd.Flags().GetBool("json"); jsonOut {
+		if results == nil {
+			results = []catalog.Result{}
+		}
+		return printJSON(cmd.OutOrStdout(), results)
+	}
 	if len(results) == 0 {
 		fmt.Fprintln(cmd.OutOrStdout(), "No results.")
 		return nil
-	}
-	if jsonOut, _ := cmd.Flags().GetBool("json"); jsonOut {
-		return printJSON(cmd.OutOrStdout(), results)
 	}
 	return printTable(cmd.OutOrStdout(),
 		[]string{"type", "title", "year", "rating", "id"},
