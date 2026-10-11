@@ -86,7 +86,7 @@ func (c *Client) get(ctx context.Context, path string, q url.Values, out any) er
 		u += "?" + q.Encode()
 	}
 
-	key := cacheKey(path, q)
+	key := cacheKey(c.baseURL, c.token, path, q)
 	if c.cache != nil {
 		if body, ok := c.cache.get(key); ok {
 			// A corrupt entry is treated as a miss and refetched.

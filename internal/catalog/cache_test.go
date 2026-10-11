@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -102,6 +103,34 @@ func TestCacheDoesNotStoreErrors(t *testing.T) {
 	}
 }
 
+func TestCacheKeyIncludesToken(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") == "Bearer b" {
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte(`{"status_message":"Invalid API key"}`))
+			return
+		}
+		w.Write([]byte(`{"ok":true}`))
+	}))
+	defer srv.Close()
+
+	dir := t.TempDir()
+	// Warm the cache with token a.
+	a := New("a", WithBaseURL(srv.URL), WithCache(dir, time.Hour))
+	var out map[string]bool
+	if err := a.get(context.Background(), "/x", nil, &out); err != nil {
+		t.Fatalf("warm get: %v", err)
+	}
+
+	// Token b must not reuse a's cache entry: the server answers 401 for b.
+	b := New("b", WithBaseURL(srv.URL), WithCache(dir, time.Hour))
+	err := b.get(context.Background(), "/x", nil, &out)
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) || apiErr.Status != http.StatusUnauthorized {
+		t.Fatalf("get with token b: err = %v, want a 401 APIError", err)
+	}
+}
+
 func TestCacheWriteFailureDoesNotFailRequest(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"ok":true}`))
@@ -132,7 +161,7 @@ func TestCacheCorruptEntryIsRefetched(t *testing.T) {
 	defer srv.Close()
 
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, cacheKey("/x", nil)+".json"), []byte("{truncated"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, cacheKey(srv.URL, "tok", "/x", nil)+".json"), []byte("{truncated"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	c := New("tok", WithBaseURL(srv.URL), WithCache(dir, time.Hour))

@@ -16,9 +16,18 @@ type cache struct {
 	now func() time.Time
 }
 
-// cacheKey returns the hex-encoded SHA-256 of path+"?"+q.Encode().
-func cacheKey(path string, q url.Values) string {
-	sum := sha256.Sum256([]byte(path + "?" + q.Encode()))
+// cacheKey returns the cache file key for a request. The key is the
+// hex-encoded SHA-256 of baseURL, a SHA-256 hash of token, the path and the
+// encoded query, joined by newlines:
+//
+//	sha256(baseURL + "\n" + hex(sha256(token)) + "\n" + path + "?" + q.Encode())
+//
+// Binding the key to baseURL and the token means a cache entry written for one
+// endpoint or credential is never reused for another. The token is hashed here
+// so it is never written to any file, file name, output or error message.
+func cacheKey(baseURL, token, path string, q url.Values) string {
+	tok := sha256.Sum256([]byte(token))
+	sum := sha256.Sum256([]byte(baseURL + "\n" + hex.EncodeToString(tok[:]) + "\n" + path + "?" + q.Encode()))
 	return hex.EncodeToString(sum[:])
 }
 
