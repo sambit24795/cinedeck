@@ -1,0 +1,38 @@
+{
+  "id": 1399,
+  "results": {
+    "IN": {
+      "link": "https://www.themoviedb.org/tv/1399-game-of-thrones/watch?locale=IN",
+      "flatrate": [
+        {"logo_path": "/jioHotstarLogo.jpg", "provider_id": 2336, "provider_name": "JioHotstar", "display_priority": 4},
+        {"logo_path": "/pvske1MyAoymrs5bguRfVqYiM9a.jpg", "provider_id": 9, "provider_name": "Amazon Prime Video", "display_priority": 2}
+      ],
+      "ads": [
+        {"logo_path": "/mxplayer.jpg", "provider_id": 515, "provider_name": "MX Player", "display_priority": 7}
+      ]
+    },
+    "US": {
+      "link": "https://www.themoviedb.org/tv/1399-game-of-thrones/watch?locale=US",
+      "flatrate": [
+        {"logo_path": "/maxLogo.jpg", "provider_id": 1899, "provider_name": "Max", "display_priority": 1},
+        {"logo_path": "/pvske1MyAoymrs5bguRfVqYiM9a.jpg", "provider_id": 9, "provider_name": "Amazon Prime Video", "display_priority": 2}
+      ],
+      "free": [
+        {"logo_path": "/tubi.jpg", "provider_id": 73, "provider_name": "Tubi TV", "display_priority": 9}
+      ],
+      "rent": [
+        {"logo_path": "/9ghgSC0MA082EL6HLCW3GalykFD.jpg", "provider_id": 2, "provider_name": "Apple TV", "display_priority": 4}
+      ],
+      "buy": [
+        {"logo_path": "/amazonVideo.jpg", "provider_id": 10, "provider_name": "Amazon Video", "display_priority": 3},
+        {"logo_path": "/9ghgSC0MA082EL6HLCW3GalykFD.jpg", "provider_id": 2, "provider_name": "Apple TV", "display_priority": 4}
+      ]
+    },
+    "FR": {
+      "link": "https://www.themoviedb.org/tv/1399-game-of-thrones/watch?locale=FR",
+      "free": [
+        {"logo_path": "/tubi.jpg", "provider_id": 73, "provider_name": "Tubi TV", "display_priority": 9}
+      ]
+    }
+  }
+}

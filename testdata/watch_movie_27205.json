@@ -1,0 +1,43 @@
+{
+  "id": 27205,
+  "results": {
+    "IN": {
+      "link": "https://www.themoviedb.org/movie/27205-inception/watch?locale=IN",
+      "flatrate": [
+        {"logo_path": "/pvske1MyAoymrs5bguRfVqYiM9a.jpg", "provider_id": 9, "provider_name": "Amazon Prime Video", "display_priority": 12},
+        {"logo_path": "/9A1JSVmSxsyaBK4SUFsYVqbAYfW.jpg", "provider_id": 8, "provider_name": "Netflix", "display_priority": 5},
+        {"logo_path": "/jioHotstarLogo.jpg", "provider_id": 2336, "provider_name": "JioHotstar", "display_priority": 5}
+      ],
+      "rent": [
+        {"logo_path": "/9ghgSC0MA082EL6HLCW3GalykFD.jpg", "provider_id": 2, "provider_name": "Apple TV", "display_priority": 4},
+        {"logo_path": "/tbEdFQDwx5LEVr8WpSeXQSIirVq.jpg", "provider_id": 3, "provider_name": "Google Play Movies", "display_priority": 6}
+      ],
+      "buy": [
+        {"logo_path": "/9ghgSC0MA082EL6HLCW3GalykFD.jpg", "provider_id": 2, "provider_name": "Apple TV", "display_priority": 4}
+      ]
+    },
+    "US": {
+      "link": "https://www.themoviedb.org/movie/27205-inception/watch?locale=US",
+      "flatrate": [
+        {"logo_path": "/maxLogo.jpg", "provider_id": 1899, "provider_name": "Max", "display_priority": 3}
+      ],
+      "ads": [
+        {"logo_path": "/pluto.jpg", "provider_id": 300, "provider_name": "Pluto TV", "display_priority": 20},
+        {"logo_path": "/tubi.jpg", "provider_id": 73, "provider_name": "Tubi TV", "display_priority": 9}
+      ],
+      "rent": [
+        {"logo_path": "/9ghgSC0MA082EL6HLCW3GalykFD.jpg", "provider_id": 2, "provider_name": "Apple TV", "display_priority": 4},
+        {"logo_path": "/amazonVideo.jpg", "provider_id": 10, "provider_name": "Amazon Video", "display_priority": 2}
+      ],
+      "buy": [
+        {"logo_path": "/9ghgSC0MA082EL6HLCW3GalykFD.jpg", "provider_id": 2, "provider_name": "Apple TV", "display_priority": 4}
+      ]
+    },
+    "DE": {
+      "link": "https://www.themoviedb.org/movie/27205-inception/watch?locale=DE",
+      "buy": [
+        {"logo_path": "/9ghgSC0MA082EL6HLCW3GalykFD.jpg", "provider_id": 2, "provider_name": "Apple TV", "display_priority": 4}
+      ]
+    }
+  }
+}
