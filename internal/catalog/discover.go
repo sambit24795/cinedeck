@@ -148,15 +148,11 @@ func (c *Client) Shorts(ctx context.Context, o ShortsOptions) ([]Result, error) 
 	q.Set("include_adult", "false")
 
 	if o.Genre != "" {
-		genres, err := c.Genres(ctx, Movie)
+		ids, err := c.genreIDs(ctx, Movie, []string{o.Genre})
 		if err != nil {
 			return nil, err
 		}
-		id, ok := genres[strings.ToLower(o.Genre)]
-		if !ok {
-			return nil, fmt.Errorf("unknown genre %q", o.Genre)
-		}
-		q.Set("with_genres", strconv.Itoa(id))
+		q.Set("with_genres", strconv.Itoa(ids[0]))
 	}
 	if o.Year > 0 {
 		q.Set("primary_release_year", strconv.Itoa(o.Year))

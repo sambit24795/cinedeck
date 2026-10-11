@@ -571,7 +571,7 @@ func TestShortsUnknownGenre(t *testing.T) {
 
 	c := New("tok", WithBaseURL(srv.URL))
 	_, err = c.Shorts(context.Background(), ShortsOptions{Genre: "nope"})
-	if err == nil || !strings.Contains(err.Error(), "unknown genre") {
-		t.Fatalf("err = %v, want it to contain %q", err, "unknown genre")
+	if err == nil || !strings.Contains(err.Error(), "unknown genre") || !strings.Contains(err.Error(), "available: ") {
+		t.Fatalf("err = %v, want it to contain %q and the list of available genres", err, "unknown genre")
 	}
 }
