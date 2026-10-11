@@ -18,6 +18,11 @@ const defaultBaseURL = "https://api.themoviedb.org/3"
 // after HTTP 429 responses.
 const maxAttempts = 3
 
+// maxRetryAfter caps the wait taken from a Retry-After header so a large value
+// (for example 3600 seconds) cannot block a request for an unbounded time. It
+// is a variable so tests can lower it.
+var maxRetryAfter = 10 * time.Second
+
 // Client talks to the TMDB API.
 type Client struct {
 	token     string
@@ -123,6 +128,9 @@ func (c *Client) get(ctx context.Context, path string, q url.Values, out any) er
 				if secs, err := strconv.Atoi(ra); err == nil {
 					wait = time.Duration(secs) * time.Second
 				}
+			}
+			if wait > maxRetryAfter {
+				wait = maxRetryAfter
 			}
 			timer := time.NewTimer(wait)
 			select {

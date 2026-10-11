@@ -87,6 +87,32 @@ func TestGet429ExhaustsAttempts(t *testing.T) {
 	}
 }
 
+func TestGetCapsRetryAfter(t *testing.T) {
+	old := maxRetryAfter
+	maxRetryAfter = time.Millisecond
+	defer func() { maxRetryAfter = old }()
+
+	var calls int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if atomic.AddInt32(&calls, 1) == 1 {
+			w.Header().Set("Retry-After", "3600")
+			w.WriteHeader(http.StatusTooManyRequests)
+			return
+		}
+		w.Write([]byte(`{}`))
+	}))
+	defer srv.Close()
+
+	c := New("tok", WithBaseURL(srv.URL), WithRetryWait(time.Millisecond))
+	var out map[string]any
+	if err := c.get(context.Background(), "/x", nil, &out); err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	if got := atomic.LoadInt32(&calls); got != 2 {
+		t.Errorf("calls = %d, want 2", got)
+	}
+}
+
 func TestGetAPIError(t *testing.T) {
 	body, err := os.ReadFile("../../testdata/error_401.json")
 	if err != nil {
