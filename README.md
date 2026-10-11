@@ -39,7 +39,16 @@ cinedeck shorts --genre animation --year 2008
 cinedeck trending --type tv
 ```
 
-Add `--json` to any of these for machine-readable output.
+See where a title is available (by id or by title). The region comes from your config; `--region` overrides it:
+
+```
+cinedeck where movie:27205 --region IN
+cinedeck where "game of thrones" --first
+```
+
+Results are grouped as Stream, Free, With ads, Rent and Buy, followed by the TMDB watch page link. TMDB does not provide a link per provider.
+
+Add `--json` to any of these for machine-readable output (with `where`, the JustWatch notice is also printed to stderr).
 
 ## Attribution
 
