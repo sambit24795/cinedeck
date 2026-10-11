@@ -16,10 +16,10 @@ cinedeck needs a free TMDB token. Each user brings their own; none is built into
 
 1. Make a free account at https://www.themoviedb.org, then open https://www.themoviedb.org/settings/api.
 2. Request an API key. In TMDB's application form enter:
-   - Application name: `cinedeck (personal use)`
+   - Application Name: `cinedeck (personal use)`
    - Application URL: `https://github.com/sambit24795/cinedeck`
-   - Application type: `Desktop Application`
-   - Summary: `A command-line tool for personal use to search movies and TV shows and see where to watch them.`
+   - Type of Use: `Desktop Application`
+   - Application Summary: `A command-line tool for personal use to search movies and TV shows and see where to watch them.`
 3. On the same page copy the long **API Read Access Token** (it starts with `eyJ`). Do not use the short **API Key**.
 4. Run `cinedeck config init` and paste the token when asked. cinedeck checks it with TMDB before saving, and refuses a token that TMDB rejects. If TMDB cannot be reached it saves the token anyway and prints a warning.
 
