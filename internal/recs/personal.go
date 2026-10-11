@@ -145,7 +145,7 @@ func Personal(ctx context.Context, src Source, entries []library.Entry, o Person
 
 	ranked := Rank(p, candidates)
 	if len(ranked) > EnrichTop {
-		ranked = ranked[:EnrichTop]
+		ranked = withSeedQuota(ranked, used, EnrichTop)
 	}
 	top := make([]Candidate, len(ranked))
 	for i, s := range ranked {
@@ -173,7 +173,7 @@ func Personal(ctx context.Context, src Source, entries []library.Entry, o Person
 
 	final := Rank(p, top)
 	if len(final) > o.Limit {
-		final = final[:o.Limit]
+		final = withSeedQuota(final, used, o.Limit)
 	}
 	for _, s := range final {
 		res.Picks = append(res.Picks, Pick{
