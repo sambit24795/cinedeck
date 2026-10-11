@@ -48,3 +48,34 @@ func TestConfigInit(t *testing.T) {
 		t.Errorf("DownloadDir = %q, want %q", cfg.DownloadDir, want)
 	}
 }
+
+func TestConfigInitKeepsExistingValues(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "c.toml")
+
+	first := newRootCmd()
+	first.SetOut(&bytes.Buffer{})
+	first.SetIn(strings.NewReader("abc\nUS\n\n"))
+	first.SetArgs([]string{"config", "init", "--config", path})
+	if err := first.Execute(); err != nil {
+		t.Fatalf("first Execute: %v", err)
+	}
+
+	second := newRootCmd()
+	second.SetOut(&bytes.Buffer{})
+	second.SetIn(strings.NewReader("\n\n\n"))
+	second.SetArgs([]string{"config", "init", "--config", path})
+	if err := second.Execute(); err != nil {
+		t.Fatalf("second Execute: %v", err)
+	}
+
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.TMDBToken != "abc" {
+		t.Errorf("TMDBToken = %q, want %q", cfg.TMDBToken, "abc")
+	}
+	if cfg.Region != "US" {
+		t.Errorf("Region = %q, want %q", cfg.Region, "US")
+	}
+}

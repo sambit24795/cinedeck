@@ -2,9 +2,12 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
+	"os"
 	"strings"
 
+	"github.com/BurntSushi/toml"
 	"github.com/sambit24795/cinedeck/internal/config"
 	"github.com/spf13/cobra"
 )
@@ -53,11 +56,14 @@ func newConfigInitCmd() *cobra.Command {
 				return err
 			}
 
-			cfg := config.Default()
+			cfg, err := loadConfigFile(path)
+			if err != nil {
+				return err
+			}
 			out := cmd.OutOrStdout()
 			in := bufio.NewReader(cmd.InOrStdin())
 
-			fmt.Fprint(out, "TMDB token: ")
+			fmt.Fprintf(out, "TMDB token [%s]: ", cfg.TMDBToken)
 			if v, err := readAnswer(in); err == nil && v != "" {
 				cfg.TMDBToken = v
 			}
@@ -79,6 +85,25 @@ func newConfigInitCmd() *cobra.Command {
 			return nil
 		},
 	}
+}
+
+// loadConfigFile decodes the config file at path over the built-in defaults,
+// without applying environment overrides. Unlike config.Load, env values are
+// never written back to disk by config init. A missing file is not an error.
+func loadConfigFile(path string) (config.Config, error) {
+	cfg := config.Default()
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return cfg, nil
+		}
+		return cfg, err
+	}
+	if err := toml.Unmarshal(data, &cfg); err != nil {
+		return cfg, err
+	}
+	return cfg, nil
 }
 
 // readAnswer reads one line and trims surrounding whitespace.
