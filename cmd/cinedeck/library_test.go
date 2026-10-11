@@ -31,7 +31,9 @@ func openTestLibrary(t *testing.T) *library.Library {
 		t.Fatalf("Open: %v", err)
 	}
 	t.Cleanup(func() {
-		_ = l.Close()
+		if err := l.Close(); err != nil {
+			t.Errorf("Close: %v", err)
+		}
 	})
 	return l
 }
