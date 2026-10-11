@@ -395,6 +395,13 @@ func TestShortsDropsLongAndUnknownRuntime(t *testing.T) {
 		}
 		if r.URL.Path == "/discover/movie" {
 			discoverQuery = r.URL.RawQuery
+			// More pages are advertised, but the fixture only holds page 1;
+			// answer page 2 and later with an empty last page so the
+			// survivors under test stay the page-1 ones.
+			if r.URL.Query().Get("page") != "" {
+				w.Write([]byte(`{"results":[],"total_pages":1}`))
+				return
+			}
 		}
 		body, err := os.ReadFile("../../testdata/" + name)
 		if err != nil {
@@ -421,6 +428,45 @@ func TestShortsDropsLongAndUnknownRuntime(t *testing.T) {
 	}
 	if got[1].ID != (ID{Movie, 14813}) || got[1].Title != "Mickey's Christmas Carol" {
 		t.Errorf("got[1] = %+v, want movie:14813 Mickey's Christmas Carol", got[1])
+	}
+}
+
+func TestShortsFetchesNextPage(t *testing.T) {
+	const (
+		page1Body = `{"page":1,"results":[{"id":1,"title":"feature","release_date":"2020-01-01"}],"total_pages":2}`
+		page2Body = `{"page":2,"results":[{"id":2,"title":"real short","release_date":"2021-01-01"}],"total_pages":2}`
+	)
+	var pageParams []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/discover/movie":
+			page := r.URL.Query().Get("page")
+			pageParams = append(pageParams, page)
+			if page == "" {
+				w.Write([]byte(page1Body))
+				return
+			}
+			w.Write([]byte(page2Body))
+		case "/movie/1":
+			w.Write([]byte(`{"runtime": 120}`))
+		case "/movie/2":
+			w.Write([]byte(`{"runtime": 15}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(srv.Close)
+
+	c := New("tok", WithBaseURL(srv.URL))
+	got, err := c.Shorts(context.Background(), ShortsOptions{})
+	if err != nil {
+		t.Fatalf("Shorts: %v", err)
+	}
+	if len(got) != 1 || got[0].ID != (ID{Movie, 2}) || got[0].Title != "real short" {
+		t.Fatalf("got = %+v, want only movie:2", got)
+	}
+	if len(pageParams) != 2 || pageParams[0] != "" || pageParams[1] != "2" {
+		t.Errorf("discover page params = %q, want [\"\" \"2\"]", pageParams)
 	}
 }
 

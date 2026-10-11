@@ -14,6 +14,8 @@ import (
 const (
 	shortMaxMinutes   = 40 // TMDB has no "short" type; this is the Academy definition
 	maxDetailRequests = 5  // detail lookups in flight at once
+	shortsTarget      = 20 // stop once this many real shorts have been found
+	shortsMaxPages    = 3  // never fetch more than this many discover pages
 )
 
 // Genres returns the genre ids for t, keyed by lower-case genre name.
@@ -158,18 +160,50 @@ func (c *Client) Shorts(ctx context.Context, o ShortsOptions) ([]Result, error) 
 		q.Set("primary_release_year", strconv.Itoa(o.Year))
 	}
 
-	var resp struct {
-		Results []item `json:"results"`
-	}
-	if err := c.get(ctx, "/discover/movie", q, &resp); err != nil {
-		return nil, err
-	}
+	// A page of /discover/movie?with_runtime.lte=40 still contains feature
+	// films and unreleased titles (the runtime filter is unreliable), and
+	// onlyShorts drops them. Fetch more pages while the survivors are short
+	// of the target, the response says more pages exist, and the page cap
+	// has not been reached.
+	out := make([]Result, 0, shortsTarget)
+	for page := 1; page <= shortsMaxPages; page++ {
+		// Page 1 is requested without a page parameter so its request and
+		// cache entry match the ones made before paging was added.
+		pageQuery := q
+		if page > 1 {
+			pageQuery = url.Values{}
+			for k, vs := range q {
+				pageQuery[k] = vs
+			}
+			pageQuery.Set("page", strconv.Itoa(page))
+		}
 
-	results := make([]Result, 0, len(resp.Results))
-	for _, it := range resp.Results {
-		results = append(results, it.result(Movie))
+		var resp struct {
+			Results    []item `json:"results"`
+			TotalPages int    `json:"total_pages"`
+		}
+		if err := c.get(ctx, "/discover/movie", pageQuery, &resp); err != nil {
+			return nil, err
+		}
+
+		results := make([]Result, 0, len(resp.Results))
+		for _, it := range resp.Results {
+			results = append(results, it.result(Movie))
+		}
+		shorts, err := c.onlyShorts(ctx, results)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, shorts...)
+
+		if len(out) >= shortsTarget || page >= resp.TotalPages {
+			break
+		}
 	}
-	return c.onlyShorts(ctx, results)
+	if len(out) > shortsTarget {
+		out = out[:shortsTarget]
+	}
+	return out, nil
 }
 
 // onlyShorts keeps the results whose runtime is 1 to 40 minutes, in the original order.
