@@ -1,0 +1,190 @@
+{
+  "id": 1396,
+  "name": "Breaking Bad",
+  "first_air_date": "2008-01-20",
+  "genres": [
+    {
+      "id": 18,
+      "name": "Drama"
+    },
+    {
+      "id": 80,
+      "name": "Crime"
+    }
+  ],
+  "popularity": 214.0942,
+  "vote_average": 8.955,
+  "vote_count": 18811,
+  "original_language": "en",
+  "number_of_seasons": 5,
+  "number_of_episodes": 62,
+  "overview": "Walter White, a New Mexico chemistry teacher, is diagnosed with Stage III cancer and given a prognosis of only two years left to live. He...",
+  "created_by": [
+    {
+      "id": 66633,
+      "name": "Vince Gilligan"
+    }
+  ],
+  "keywords": {
+    "results": [
+      {
+        "name": "new mexico",
+        "id": 1508
+      },
+      {
+        "name": "drug dealer",
+        "id": 2231
+      },
+      {
+        "name": "narcissism",
+        "id": 5857
+      },
+      {
+        "name": "psychopath",
+        "id": 6259
+      },
+      {
+        "name": "terminal illness",
+        "id": 6564
+      },
+      {
+        "name": "outlaw",
+        "id": 9503
+      },
+      {
+        "name": "dark comedy",
+        "id": 10123
+      },
+      {
+        "name": "cancer",
+        "id": 10163
+      },
+      {
+        "name": "tragedy",
+        "id": 10614
+      },
+      {
+        "name": "drugs",
+        "id": 14964
+      },
+      {
+        "name": "criminal",
+        "id": 15009
+      },
+      {
+        "name": "meth lab",
+        "id": 15484
+      },
+      {
+        "name": "drug lord",
+        "id": 18026
+      },
+      {
+        "name": "high school teacher",
+        "id": 41525
+      },
+      {
+        "name": "dea agent",
+        "id": 156805
+      },
+      {
+        "name": "neo-western",
+        "id": 168713
+      },
+      {
+        "name": "albuquerque, new mexico",
+        "id": 191005
+      },
+      {
+        "name": "criminal lawyer",
+        "id": 191199
+      },
+      {
+        "name": "fall from grace",
+        "id": 199660
+      },
+      {
+        "name": "cartel",
+        "id": 206594
+      },
+      {
+        "name": "mexican cartel",
+        "id": 217064
+      },
+      {
+        "name": "male egos",
+        "id": 217104
+      },
+      {
+        "name": "crystal meth",
+        "id": 239108
+      },
+      {
+        "name": "complex",
+        "id": 239797
+      },
+      {
+        "name": "dark",
+        "id": 259094
+      },
+      {
+        "name": "methamphetamine",
+        "id": 281692
+      },
+      {
+        "name": "thriller",
+        "id": 316362
+      },
+      {
+        "name": "violent",
+        "id": 342828
+      },
+      {
+        "name": "tortured genius",
+        "id": 360934
+      }
+    ]
+  },
+  "credits": {
+    "cast": [
+      {
+        "id": 17419,
+        "name": "Bryan Cranston",
+        "order": 0
+      },
+      {
+        "id": 84497,
+        "name": "Aaron Paul",
+        "order": 1
+      },
+      {
+        "id": 134531,
+        "name": "Anna Gunn",
+        "order": 2
+      },
+      {
+        "id": 209674,
+        "name": "RJ Mitte",
+        "order": 3
+      },
+      {
+        "id": 14329,
+        "name": "Dean Norris",
+        "order": 4
+      },
+      {
+        "id": 1217934,
+        "name": "Betsy Brandt",
+        "order": 5
+      }
+    ],
+    "crew": [
+      {
+        "id": 24951,
+        "name": "Peter Gould",
+        "job": "Co-Executive Producer",
+        "department": "Production"
+      }
+    ]
+  }
+}

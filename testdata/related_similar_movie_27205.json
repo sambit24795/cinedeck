@@ -1,0 +1,75 @@
+{
+  "page": 1,
+  "results": [
+    {
+      "adult": false,
+      "id": 26834,
+      "title": "Soft Deceit",
+      "original_title": "Soft Deceit",
+      "release_date": "1995-02-16",
+      "genre_ids": [
+        28,
+        53
+      ],
+      "popularity": 0.7586,
+      "vote_average": 4.0,
+      "vote_count": 5,
+      "original_language": "en",
+      "overview": "An attractive cop is assigned the task of tracing millions of dollars of stolen church funds. The thief, is locked up in prison, and the..."
+    },
+    {
+      "adult": false,
+      "id": 26889,
+      "title": "The Brother from Another Planet",
+      "original_title": "The Brother from Another Planet",
+      "release_date": "1984-09-07",
+      "genre_ids": [
+        35,
+        878,
+        18
+      ],
+      "popularity": 2.8842,
+      "vote_average": 6.7,
+      "vote_count": 102,
+      "original_language": "en",
+      "overview": "A mute alien with the appearance of a black human is chased by outer-space bounty hunters through the streets of Harlem."
+    },
+    {
+      "adult": false,
+      "id": 27022,
+      "title": "The Sorcerer's Apprentice",
+      "original_title": "The Sorcerer's Apprentice",
+      "release_date": "2010-07-13",
+      "genre_ids": [
+        14,
+        12,
+        28
+      ],
+      "popularity": 12.1145,
+      "vote_average": 6.147,
+      "vote_count": 5415,
+      "original_language": "en",
+      "overview": "Balthazar Blake is a master sorcerer in modern-day Manhattan trying to defend the city from his arch-nemesis, Maxim Horvath. Balthazar..."
+    },
+    {
+      "adult": false,
+      "id": 471429,
+      "title": "Blue Iguana",
+      "original_title": "Blue Iguana",
+      "release_date": "2018-08-23",
+      "genre_ids": [
+        28,
+        35,
+        53,
+        10749
+      ],
+      "popularity": 1.9586,
+      "vote_average": 5.7,
+      "vote_count": 117,
+      "original_language": "en",
+      "overview": "He's a low level criminal with no future and just out of prison. She's a low level lawyer never noticed by others, a lost soul without a..."
+    }
+  ],
+  "total_pages": 1001,
+  "total_results": 20001
+}

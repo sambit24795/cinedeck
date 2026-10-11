@@ -1,0 +1,75 @@
+{
+  "page": 1,
+  "results": [
+    {
+      "adult": false,
+      "id": 680,
+      "title": "Pulp Fiction",
+      "original_title": "Pulp Fiction",
+      "release_date": "1994-09-10",
+      "genre_ids": [
+        53,
+        80,
+        35
+      ],
+      "popularity": 42.4861,
+      "vote_average": 8.48,
+      "vote_count": 31066,
+      "original_language": "en",
+      "overview": "A burger-loving hit man, his philosophical partner, a drug-addled gangster's moll and a washed-up boxer converge in this sprawling, comedic..."
+    },
+    {
+      "adult": false,
+      "id": 345,
+      "title": "Eyes Wide Shut",
+      "original_title": "Eyes Wide Shut",
+      "release_date": "1999-07-16",
+      "genre_ids": [
+        18,
+        53,
+        9648
+      ],
+      "popularity": 41.2227,
+      "vote_average": 7.5,
+      "vote_count": 7379,
+      "original_language": "en",
+      "overview": "After Dr. Bill Harford's wife, Alice, admits to having sexual fantasies about a man she met, Bill becomes obsessed with having a sexual..."
+    },
+    {
+      "adult": false,
+      "id": 106646,
+      "title": "The Wolf of Wall Street",
+      "original_title": "The Wolf of Wall Street",
+      "release_date": "2013-12-25",
+      "genre_ids": [
+        80,
+        18,
+        35
+      ],
+      "popularity": 34.5239,
+      "vote_average": 8.027,
+      "vote_count": 26696,
+      "original_language": "en",
+      "overview": "A New York stockbroker refuses to cooperate in a large securities fraud case involving corruption on Wall Street, corporate banking world..."
+    },
+    {
+      "adult": false,
+      "id": 2034,
+      "title": "Training Day",
+      "original_title": "Training Day",
+      "release_date": "2001-10-05",
+      "genre_ids": [
+        28,
+        80,
+        18
+      ],
+      "popularity": 27.9036,
+      "vote_average": 7.533,
+      "vote_count": 6907,
+      "original_language": "en",
+      "overview": "On his first day on the job as a narcotics officer, a rookie cop works with a rogue detective who isn't what he appears."
+    }
+  ],
+  "total_pages": 1,
+  "total_results": 20
+}

@@ -1,0 +1,165 @@
+{
+  "id": 60059,
+  "name": "Better Call Saul",
+  "first_air_date": "2015-02-08",
+  "genres": [
+    {
+      "id": 80,
+      "name": "Crime"
+    },
+    {
+      "id": 18,
+      "name": "Drama"
+    }
+  ],
+  "popularity": 112.134,
+  "vote_average": 8.716,
+  "vote_count": 6966,
+  "original_language": "en",
+  "number_of_seasons": 6,
+  "number_of_episodes": 63,
+  "overview": "Six years before Saul Goodman meets Walter White. We meet him when the man who will become Saul Goodman is known as Jimmy McGill, a...",
+  "created_by": [
+    {
+      "id": 66633,
+      "name": "Vince Gilligan"
+    },
+    {
+      "id": 24951,
+      "name": "Peter Gould"
+    }
+  ],
+  "keywords": {
+    "results": [
+      {
+        "name": "new mexico",
+        "id": 1508
+      },
+      {
+        "name": "moral conflict",
+        "id": 4690
+      },
+      {
+        "name": "crooked lawyer",
+        "id": 7340
+      },
+      {
+        "name": "prequel",
+        "id": 9675
+      },
+      {
+        "name": "romance",
+        "id": 9840
+      },
+      {
+        "name": "dark comedy",
+        "id": 10123
+      },
+      {
+        "name": "family relationships",
+        "id": 10235
+      },
+      {
+        "name": "tragedy",
+        "id": 10614
+      },
+      {
+        "name": "lawyer",
+        "id": 10909
+      },
+      {
+        "name": "brother against brother",
+        "id": 12653
+      },
+      {
+        "name": "spin off",
+        "id": 15285
+      },
+      {
+        "name": "neo-western",
+        "id": 168713
+      },
+      {
+        "name": "albuquerque, new mexico",
+        "id": 191005
+      },
+      {
+        "name": "criminal lawyer",
+        "id": 191199
+      },
+      {
+        "name": "fall from grace",
+        "id": 199660
+      },
+      {
+        "name": "aggressive",
+        "id": 202371
+      },
+      {
+        "name": "neo-noir",
+        "id": 207268
+      },
+      {
+        "name": "mexican cartel",
+        "id": 217064
+      },
+      {
+        "name": "legal drama",
+        "id": 222517
+      },
+      {
+        "name": "gritty",
+        "id": 286125
+      },
+      {
+        "name": "offbeat",
+        "id": 315905
+      },
+      {
+        "name": "hilarious",
+        "id": 320420
+      },
+      {
+        "name": "forceful",
+        "id": 325816
+      }
+    ]
+  },
+  "credits": {
+    "cast": [
+      {
+        "id": 59410,
+        "name": "Bob Odenkirk",
+        "order": 0
+      },
+      {
+        "id": 783,
+        "name": "Jonathan Banks",
+        "order": 1
+      },
+      {
+        "id": 62765,
+        "name": "Rhea Seehorn",
+        "order": 3
+      },
+      {
+        "id": 76855,
+        "name": "Tony Dalton",
+        "order": 6
+      },
+      {
+        "id": 4808,
+        "name": "Giancarlo Esposito",
+        "order": 7
+      }
+    ],
+    "crew": [
+      {
+        "id": 1223202,
+        "name": "Diane Mercer",
+        "job": "Executive Producer",
+        "department": "Production"
+      }
+    ]
+  }
+}

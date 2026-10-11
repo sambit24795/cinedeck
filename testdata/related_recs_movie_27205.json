@@ -1,0 +1,116 @@
+{
+  "page": 1,
+  "results": [
+    {
+      "adult": false,
+      "id": 9620,
+      "title": "Paycheck",
+      "original_title": "Paycheck",
+      "release_date": "2003-12-25",
+      "genre_ids": [
+        28,
+        878,
+        53
+      ],
+      "popularity": 7.8359,
+      "vote_average": 6.229,
+      "vote_count": 2141,
+      "media_type": "movie",
+      "original_language": "en",
+      "overview": "Michael Jennings is a genius who's hired – and paid handsomely – by high-tech firms to work on highly sensitive projects, after which his..."
+    },
+    {
+      "adult": false,
+      "id": 353491,
+      "title": "The Dark Tower",
+      "original_title": "The Dark Tower",
+      "release_date": "2017-08-03",
+      "genre_ids": [
+        14,
+        28,
+        878
+      ],
+      "popularity": 17.2535,
+      "vote_average": 5.8,
+      "vote_count": 5711,
+      "media_type": "movie",
+      "original_language": "en",
+      "overview": "A boy haunted by visions of a parallel world aids its disillusioned guardian in preventing the destruction of the nexus of universes known..."
+    },
+    {
+      "adult": false,
+      "id": 13455,
+      "title": "Push",
+      "original_title": "Push",
+      "release_date": "2009-02-04",
+      "genre_ids": [
+        878,
+        28,
+        12,
+        53
+      ],
+      "popularity": 8.3001,
+      "vote_average": 6.2,
+      "vote_count": 2530,
+      "media_type": "movie",
+      "original_language": "en",
+      "overview": "After his father, an assassin, is brutally murdered, Nick Gant vows revenge on Division, the covert government agency that dabbles in..."
+    },
+    {
+      "adult": false,
+      "id": 348350,
+      "title": "Solo: A Star Wars Story",
+      "original_title": "Solo: A Star Wars Story",
+      "release_date": "2018-05-15",
+      "genre_ids": [
+        878,
+        12,
+        28
+      ],
+      "popularity": 14.6524,
+      "vote_average": 6.6,
+      "vote_count": 9565,
+      "media_type": "movie",
+      "original_language": "en",
+      "overview": "Through a series of daring escapades deep within a dark and dangerous criminal underworld, Han Solo meets his mighty future copilot..."
+    },
+    {
+      "adult": false,
+      "id": 315837,
+      "title": "Ghost in the Shell",
+      "original_title": "Ghost in the Shell",
+      "release_date": "2017-03-29",
+      "genre_ids": [
+        878,
+        18,
+        28
+      ],
+      "popularity": 28.981,
+      "vote_average": 6.115,
+      "vote_count": 8788,
+      "media_type": "movie",
+      "original_language": "en",
+      "overview": "In the near future, Major is the first of her kind: a human saved from a terrible crash, then cyber-enhanced to be a perfect soldier..."
+    },
+    {
+      "adult": false,
+      "id": 777443,
+      "title": "The Electric State",
+      "original_title": "The Electric State",
+      "release_date": "2025-02-24",
+      "genre_ids": [
+        28,
+        12,
+        878
+      ],
+      "popularity": 16.6724,
+      "vote_average": 6.5,
+      "vote_count": 1845,
+      "media_type": "movie",
+      "original_language": "en",
+      "overview": "An orphaned teen hits the road with a mysterious robot to find her long-lost brother, teaming up with a smuggler and his wisecracking..."
+    }
+  ],
+  "total_pages": 23,
+  "total_results": 452
+}

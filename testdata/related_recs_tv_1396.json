@@ -1,0 +1,128 @@
+{
+  "page": 1,
+  "results": [
+    {
+      "adult": false,
+      "id": 60059,
+      "name": "Better Call Saul",
+      "original_name": "Better Call Saul",
+      "first_air_date": "2015-02-08",
+      "genre_ids": [
+        80,
+        18
+      ],
+      "popularity": 112.134,
+      "vote_average": 8.716,
+      "vote_count": 6966,
+      "media_type": "tv",
+      "original_language": "en",
+      "origin_country": [
+        "US"
+      ],
+      "overview": "Six years before Saul Goodman meets Walter White. We meet him when the man who will become Saul Goodman is known as Jimmy McGill, a..."
+    },
+    {
+      "adult": false,
+      "id": 80968,
+      "name": "Narcos: Mexico",
+      "original_name": "Narcos: Mexico",
+      "first_air_date": "2018-11-16",
+      "genre_ids": [
+        18,
+        80
+      ],
+      "popularity": 31.0267,
+      "vote_average": 7.9,
+      "vote_count": 1549,
+      "media_type": "tv",
+      "original_language": "en",
+      "origin_country": [
+        "US"
+      ],
+      "overview": "See the rise of the Guadalajara Cartel as an American DEA agent learns the danger of targeting narcos in 1980s Mexico."
+    },
+    {
+      "adult": false,
+      "id": 71694,
+      "name": "Snowfall",
+      "original_name": "Snowfall",
+      "first_air_date": "2017-07-05",
+      "genre_ids": [
+        18,
+        80
+      ],
+      "popularity": 51.8112,
+      "vote_average": 8.4,
+      "vote_count": 818,
+      "media_type": "tv",
+      "original_language": "en",
+      "origin_country": [
+        "US"
+      ],
+      "overview": "Los Angeles. 1983. A storm is coming and its name is crack. Set against the infancy of the crack cocaine epidemic and its ultimate radical..."
+    },
+    {
+      "adult": false,
+      "id": 63351,
+      "name": "Narcos",
+      "original_name": "Narcos",
+      "first_air_date": "2015-08-28",
+      "genre_ids": [
+        80,
+        18
+      ],
+      "popularity": 46.7673,
+      "vote_average": 8.083,
+      "vote_count": 3493,
+      "media_type": "tv",
+      "original_language": "en",
+      "origin_country": [
+        "US"
+      ],
+      "overview": "A gritty chronicle of the war against Colombia's infamously violent and powerful drug cartels."
+    },
+    {
+      "adult": false,
+      "id": 128904,
+      "name": "Dark Winds",
+      "original_name": "Dark Winds",
+      "first_air_date": "2022-06-12",
+      "genre_ids": [
+        18,
+        80,
+        9648
+      ],
+      "popularity": 30.07,
+      "vote_average": 7.461,
+      "vote_count": 219,
+      "media_type": "tv",
+      "original_language": "en",
+      "origin_country": [
+        "US"
+      ],
+      "overview": "This psychological thriller follows two Navajo police officers, Leaphorn and Chee, in the 1970s Southwest as their search for clues in a..."
+    },
+    {
+      "adult": false,
+      "id": 66025,
+      "name": "Animal Kingdom",
+      "original_name": "Animal Kingdom",
+      "first_air_date": "2016-06-14",
+      "genre_ids": [
+        80,
+        18
+      ],
+      "popularity": 69.6991,
+      "vote_average": 7.8,
+      "vote_count": 576,
+      "media_type": "tv",
+      "original_language": "en",
+      "origin_country": [
+        "US"
+      ],
+      "overview": "17-year-old Joshua \"J\" Cody moves in with his freewheeling relatives in their Southern California beach town after his mother dies of a..."
+    }
+  ],
+  "total_pages": 31,
+  "total_results": 616
+}
