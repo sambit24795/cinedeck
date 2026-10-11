@@ -136,6 +136,45 @@ func TestOpenReopen(t *testing.T) {
 	}
 }
 
+func TestOpenQuestionMarkInPath(t *testing.T) {
+	ctx := context.Background()
+	parent := t.TempDir()
+	dir := filepath.Join(parent, "q?mark")
+	path := filepath.Join(dir, "library.db")
+
+	l, err := Open(path)
+	if err != nil {
+		if strings.Contains(err.Error(), "must not contain") {
+			return
+		}
+		t.Fatalf("Open: %v", err)
+	}
+	if err := l.SetMeta(ctx, "k", "v"); err != nil {
+		t.Fatalf("SetMeta: %v", err)
+	}
+	if err := l.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+
+	reopened, err := Open(path)
+	if err != nil {
+		t.Fatalf("Open second: %v", err)
+	}
+	defer reopened.Close()
+	got, ok, err := reopened.GetMeta(ctx, "k")
+	if err != nil {
+		t.Fatalf("GetMeta: %v", err)
+	}
+	if !ok || got != "v" {
+		t.Errorf("GetMeta = %q, %v; want %q, true", got, ok, "v")
+	}
+
+	// SQLite must not have created the stray file "q" next to the directory.
+	if _, err := os.Stat(filepath.Join(parent, "q")); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("stray file q: err = %v, want os.ErrNotExist", err)
+	}
+}
+
 func TestMetaUpsert(t *testing.T) {
 	ctx := context.Background()
 	l, err := Open(filepath.Join(t.TempDir(), "library.db"))

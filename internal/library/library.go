@@ -5,8 +5,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	_ "modernc.org/sqlite" // registers the "sqlite" driver
@@ -35,7 +37,7 @@ func Open(path string) (*Library, error) {
 		return nil, fmt.Errorf("library: %w", err)
 	}
 
-	db, err := sql.Open("sqlite", path+"?_pragma=foreign_keys(1)&_pragma=busy_timeout(5000)&_txlock=immediate")
+	db, err := sql.Open("sqlite", sqliteDSN(path))
 	if err != nil {
 		return nil, fmt.Errorf("library: %w", err)
 	}
@@ -49,6 +51,17 @@ func Open(path string) (*Library, error) {
 		return nil, err
 	}
 	return &Library{db: db, now: time.Now}, nil
+}
+
+// sqliteDSN builds the DSN for path. The driver splits the DSN at the first
+// '?', so a '?' inside the path must be percent-encoded behind a file: URI;
+// otherwise SQLite opens the file before the '?' and leaves library.db empty.
+func sqliteDSN(path string) string {
+	const params = "?_pragma=foreign_keys(1)&_pragma=busy_timeout(5000)&_txlock=immediate"
+	if strings.ContainsRune(path, '?') {
+		return "file:" + (&url.URL{Path: path}).EscapedPath() + params
+	}
+	return path + params
 }
 
 // Close closes the underlying database.
