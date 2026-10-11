@@ -18,5 +18,6 @@ func newRootCmd() *cobra.Command {
 	cmd.PersistentFlags().String("config", "", "config file path")
 	_ = cmd.PersistentFlags().MarkHidden("config")
 	cmd.AddCommand(newConfigCmd())
+	cmd.AddCommand(newSearchCmd())
 	return cmd
 }
