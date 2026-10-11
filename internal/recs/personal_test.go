@@ -224,10 +224,21 @@ func TestPersonalSkippedAndFailingLists(t *testing.T) {
 	}
 }
 
+// recCountSource counts Recommendations calls on top of fakeSource.
+type recCountSource struct {
+	*fakeSource
+	recCalls []catalog.ID
+}
+
+func (s *recCountSource) Recommendations(ctx context.Context, id catalog.ID) ([]catalog.Related, error) {
+	s.recCalls = append(s.recCalls, id)
+	return s.fakeSource.Recommendations(ctx, id)
+}
+
 func TestPersonalTypeFilter(t *testing.T) {
 	ctx := context.Background()
 	seed := likedEntry(movieID(1), "Seed", []int{878}, catalog.Keyword{ID: 5, Name: "k5"})
-	src := &fakeSource{
+	fake := &fakeSource{
 		metas: map[catalog.ID]*catalog.Meta{
 			tvID(50): {ID: tvID(50), Title: "T50", GenreIDs: []int{10765}, Votes: 900},
 		},
@@ -241,10 +252,14 @@ func TestPersonalTypeFilter(t *testing.T) {
 			}
 		},
 	}
+	src := &recCountSource{fakeSource: fake}
 
 	res, err := Personal(ctx, src, []library.Entry{seed}, PersonalOptions{Type: catalog.TV, Limit: 10})
 	if err != nil {
 		t.Fatalf("Personal: %v", err)
+	}
+	if len(src.recCalls) != 0 {
+		t.Errorf("Recommendations calls = %v, want none for a movie seed with --type tv", src.recCalls)
 	}
 	if len(src.queries) != 2 {
 		t.Fatalf("queries = %v, want 2", src.queries)
