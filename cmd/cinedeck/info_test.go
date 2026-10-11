@@ -114,3 +114,27 @@ func TestInfoSkipsEmptyFields(t *testing.T) {
 		}
 	}
 }
+
+func TestInfoInteractiveJSONKeepsStdoutValid(t *testing.T) {
+	setCatalogEnv(t, infoServer(t))
+
+	cmd := newRootCmd()
+	var out, errBuf bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetErr(&errBuf)
+	cmd.SetIn(strings.NewReader("2\n"))
+	cmd.SetArgs([]string{"info", "inception", "--json", "--config", filepath.Join(t.TempDir(), "none.toml")})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	var got map[string]any
+	if err := json.Unmarshal(out.Bytes(), &got); err != nil {
+		t.Fatalf("stdout %q is not valid JSON: %v", out.String(), err)
+	}
+	if got["id"] != "tv:1399" {
+		t.Errorf("id = %v, want tv:1399", got["id"])
+	}
+	if !strings.Contains(errBuf.String(), "Pick a number") {
+		t.Errorf("stderr = %q, want the picker prompt", errBuf.String())
+	}
+}

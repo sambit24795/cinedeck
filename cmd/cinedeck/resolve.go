@@ -28,7 +28,11 @@ func resolveID(cmd *cobra.Command, c *catalog.Client, arg string, first bool) (c
 		return results[0].ID, nil
 	}
 
+	// With --json, stdout must stay valid JSON, so the picker goes to stderr.
 	out := cmd.OutOrStdout()
+	if jsonOut, _ := cmd.Flags().GetBool("json"); jsonOut {
+		out = cmd.ErrOrStderr()
+	}
 	for i, r := range results {
 		title := r.Title
 		if r.Year > 0 {
