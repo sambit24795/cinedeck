@@ -30,8 +30,9 @@ func resolveID(cmd *cobra.Command, c *catalog.Client, arg string, first bool) (c
 	}
 
 	// With --json, stdout must stay valid JSON, so the picker goes to stderr.
+	jsonOut, _ := cmd.Flags().GetBool("json")
 	out := cmd.OutOrStdout()
-	if jsonOut, _ := cmd.Flags().GetBool("json"); jsonOut {
+	if jsonOut {
 		out = cmd.ErrOrStderr()
 	}
 	for i, r := range results {
@@ -44,6 +45,11 @@ func resolveID(cmd *cobra.Command, c *catalog.Client, arg string, first bool) (c
 	fmt.Fprint(out, "Pick a number: ")
 
 	line, err := bufio.NewReader(cmd.InOrStdin()).ReadString('\n')
+	if jsonOut {
+		// In a terminal the answer shares the prompt line; under --json the
+		// notice that follows must start on its own line.
+		fmt.Fprint(out, "\n")
+	}
 	if err != nil && strings.TrimSpace(line) == "" {
 		return catalog.ID{}, errors.New("no selection made")
 	}

@@ -293,6 +293,27 @@ func TestWhereTitlePicker(t *testing.T) {
 	}
 }
 
+func TestWhereTitlePickerJSON(t *testing.T) {
+	_, _, cfg := setupWhere(t)
+
+	cmd := newRootCmd()
+	var out, errBuf bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetErr(&errBuf)
+	cmd.SetIn(strings.NewReader("2\n"))
+	cmd.SetArgs([]string{"where", "inception", "--region", "US", "--json", "--config", cfg})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	var got whereOutput
+	if err := json.Unmarshal(out.Bytes(), &got); err != nil {
+		t.Fatalf("stdout %q is not JSON: %v", out.String(), err)
+	}
+	if want := "\n" + justWatchNotice + "\n"; !strings.HasSuffix(errBuf.String(), want) {
+		t.Errorf("stderr = %q, want it to end with %q", errBuf.String(), want)
+	}
+}
+
 func TestWhereInvalidRegion(t *testing.T) {
 	_, _, cfg := setupWhere(t)
 
