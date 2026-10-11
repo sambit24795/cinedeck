@@ -24,5 +24,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newTrendingCmd())
 	cmd.AddCommand(newWhereCmd())
 	cmd.AddCommand(newDiscoverCmd())
+	cmd.AddCommand(newKdramaCmd())
+	cmd.AddCommand(newAnimeCmd())
 	return cmd
 }
