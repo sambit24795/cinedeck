@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/sambit24795/cinedeck/internal/catalog"
 )
 
 // fixtureServer starts a server that serves the named testdata files for the
@@ -139,5 +141,18 @@ func TestSearchNoResults(t *testing.T) {
 	}
 	if got == nil || len(got) != 0 {
 		t.Errorf("--json output = %q, want an empty array", out)
+	}
+}
+
+func TestResultRowsUnratedShowsDash(t *testing.T) {
+	rows := resultRows([]catalog.Result{
+		{ID: catalog.ID{Type: catalog.Movie, N: 1}, Title: "Unrated", Year: 2020},
+		{ID: catalog.ID{Type: catalog.Movie, N: 2}, Title: "Rated", Year: 2021, Rating: 7.4},
+	})
+	if got := rows[0][3]; got != "-" {
+		t.Errorf("unrated rating = %q, want %q", got, "-")
+	}
+	if got := rows[1][3]; got != "7.4" {
+		t.Errorf("rated rating = %q, want %q", got, "7.4")
 	}
 }

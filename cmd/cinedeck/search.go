@@ -55,7 +55,7 @@ func resultRows(results []catalog.Result) [][]string {
 			string(r.ID.Type),
 			r.Title,
 			formatYear(r.Year),
-			strconv.FormatFloat(r.Rating, 'f', 1, 64),
+			formatRating(r.Rating),
 			r.ID.String(),
 		})
 	}
@@ -68,4 +68,12 @@ func formatYear(y int) string {
 		return "-"
 	}
 	return strconv.Itoa(y)
+}
+
+// formatRating prints 0 (no votes) as "-".
+func formatRating(r float64) string {
+	if r == 0 {
+		return "-"
+	}
+	return strconv.FormatFloat(r, 'f', 1, 64)
 }
