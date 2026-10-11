@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -182,6 +183,182 @@ func TestGenreIDs(t *testing.T) {
 		}
 		if len(paths) != 0 {
 			t.Errorf("paths = %v, want no requests", paths)
+		}
+	})
+}
+
+// discoverCatalogServer serves the discover and genre fixtures by path. It
+// records every requested path and the query of the last "/discover/" request.
+func discoverCatalogServer(t *testing.T, paths *[]string, query *url.Values) *httptest.Server {
+	t.Helper()
+	files := map[string]string{
+		"/discover/tv":      "discover_tv_kdrama.json",
+		"/discover/movie":   "discover_movie_anime.json",
+		"/genre/tv/list":    "genre_tv_list.json",
+		"/genre/movie/list": "genre_movie_list.json",
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		*paths = append(*paths, r.URL.Path)
+		name, ok := files[r.URL.Path]
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+		if strings.HasPrefix(r.URL.Path, "/discover/") {
+			*query = r.URL.Query()
+		}
+		body, err := os.ReadFile("../../testdata/" + name)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(body)
+	}))
+	t.Cleanup(srv.Close)
+	return srv
+}
+
+func TestDiscover(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("tv", func(t *testing.T) {
+		var paths []string
+		var query url.Values
+		srv := discoverCatalogServer(t, &paths, &query)
+		c := New("tok", WithBaseURL(srv.URL))
+		got, err := c.Discover(ctx, DiscoverOptions{Type: TV, Genres: []string{"Drama"}, Language: "ko", MinVotes: 50})
+		if err != nil {
+			t.Fatalf("Discover: %v", err)
+		}
+		if len(paths) == 0 || paths[len(paths)-1] != "/discover/tv" {
+			t.Errorf("paths = %v, want the last one to be /discover/tv", paths)
+		}
+		for _, want := range [][2]string{{"with_original_language", "ko"}, {"with_genres", "18"}, {"vote_count.gte", "50"}, {"sort_by", "popularity.desc"}, {"include_adult", "false"}} {
+			if got := query.Get(want[0]); got != want[1] {
+				t.Errorf("query[%s] = %q, want %q", want[0], got, want[1])
+			}
+		}
+		for _, bad := range []string{"with_origin_country", "first_air_date_year", "primary_release_year"} {
+			if query.Has(bad) {
+				t.Errorf("query = %v, want no %s", query, bad)
+			}
+		}
+		if len(got) != 4 {
+			t.Fatalf("len = %d, want 4", len(got))
+		}
+		want := Result{ID: ID{TV, 93405}, Title: "Squid Game", Year: 2021, Rating: 7.853}
+		if got[0].ID != want.ID || got[0].Title != want.Title || got[0].Year != want.Year || got[0].Rating != want.Rating {
+			t.Errorf("got[0] = %+v, want %+v", got[0], want)
+		}
+	})
+
+	t.Run("movie", func(t *testing.T) {
+		var paths []string
+		var query url.Values
+		srv := discoverCatalogServer(t, &paths, &query)
+		c := New("tok", WithBaseURL(srv.URL))
+		got, err := c.Discover(ctx, DiscoverOptions{Type: Movie, Genres: []string{"animation"}, Language: "ja", Country: "JP", Year: 2023})
+		if err != nil {
+			t.Fatalf("Discover: %v", err)
+		}
+		if len(paths) == 0 || paths[len(paths)-1] != "/discover/movie" {
+			t.Errorf("paths = %v, want the last one to be /discover/movie", paths)
+		}
+		for _, want := range [][2]string{{"with_genres", "16"}, {"with_original_language", "ja"}, {"with_origin_country", "JP"}, {"primary_release_year", "2023"}} {
+			if got := query.Get(want[0]); got != want[1] {
+				t.Errorf("query[%s] = %q, want %q", want[0], got, want[1])
+			}
+		}
+		for _, bad := range []string{"first_air_date_year", "vote_count.gte"} {
+			if query.Has(bad) {
+				t.Errorf("query = %v, want no %s", query, bad)
+			}
+		}
+		if len(got) != 4 {
+			t.Fatalf("len = %d, want 4", len(got))
+		}
+		if got[0].ID != (ID{Movie, 1311031}) || got[0].Title != "Demon Slayer: Kimetsu no Yaiba Infinity Castle" || got[0].Year != 2025 {
+			t.Errorf("got[0] = %+v, want movie:1311031 at 2025", got[0])
+		}
+	})
+
+	t.Run("tv year", func(t *testing.T) {
+		var paths []string
+		var query url.Values
+		srv := discoverCatalogServer(t, &paths, &query)
+		c := New("tok", WithBaseURL(srv.URL))
+		if _, err := c.Discover(ctx, DiscoverOptions{Type: TV, Year: 2024}); err != nil {
+			t.Fatalf("Discover: %v", err)
+		}
+		if got := query.Get("first_air_date_year"); got != "2024" {
+			t.Errorf("first_air_date_year = %q, want 2024", got)
+		}
+		if query.Has("primary_release_year") {
+			t.Errorf("query = %v, want no primary_release_year", query)
+		}
+		if query.Has("with_genres") {
+			t.Errorf("query = %v, want no with_genres", query)
+		}
+		for _, p := range paths {
+			if p == "/genre/tv/list" {
+				t.Errorf("paths = %v, want no genre request", paths)
+			}
+		}
+	})
+
+	t.Run("empty type", func(t *testing.T) {
+		var paths []string
+		var query url.Values
+		srv := discoverCatalogServer(t, &paths, &query)
+		c := New("tok", WithBaseURL(srv.URL))
+		if _, err := c.Discover(ctx, DiscoverOptions{Language: "ja"}); err != nil {
+			t.Fatalf("Discover: %v", err)
+		}
+		if len(paths) == 0 || paths[len(paths)-1] != "/discover/movie" {
+			t.Errorf("paths = %v, want the last one to be /discover/movie", paths)
+		}
+	})
+
+	t.Run("two genres", func(t *testing.T) {
+		var paths []string
+		var query url.Values
+		srv := discoverCatalogServer(t, &paths, &query)
+		c := New("tok", WithBaseURL(srv.URL))
+		if _, err := c.Discover(ctx, DiscoverOptions{Type: TV, Genres: []string{"Animation", "Drama"}}); err != nil {
+			t.Fatalf("Discover: %v", err)
+		}
+		if got := query.Get("with_genres"); got != "16,18" {
+			t.Errorf("with_genres = %q, want %q", got, "16,18")
+		}
+	})
+
+	t.Run("invalid type", func(t *testing.T) {
+		var paths []string
+		var query url.Values
+		srv := discoverCatalogServer(t, &paths, &query)
+		c := New("tok", WithBaseURL(srv.URL))
+		_, err := c.Discover(ctx, DiscoverOptions{Type: MediaType("person")})
+		if err == nil || !strings.Contains(err.Error(), `invalid type "person"`) {
+			t.Fatalf("err = %v, want it to contain invalid type", err)
+		}
+		if len(paths) != 0 {
+			t.Errorf("paths = %v, want no requests", paths)
+		}
+	})
+
+	t.Run("unknown genre", func(t *testing.T) {
+		var paths []string
+		var query url.Values
+		srv := discoverCatalogServer(t, &paths, &query)
+		c := New("tok", WithBaseURL(srv.URL))
+		_, err := c.Discover(ctx, DiscoverOptions{Type: TV, Genres: []string{"Action"}})
+		if err == nil || !strings.Contains(err.Error(), "unknown genre") {
+			t.Fatalf("err = %v, want it to contain unknown genre", err)
+		}
+		for _, p := range paths {
+			if p == "/discover/tv" {
+				t.Errorf("paths = %v, want no /discover/tv request", paths)
+			}
 		}
 	})
 }

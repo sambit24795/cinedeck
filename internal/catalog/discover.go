@@ -60,6 +60,73 @@ func (c *Client) genreIDs(ctx context.Context, t MediaType, names []string) ([]i
 	return ids, nil
 }
 
+// DiscoverOptions filters a discover query.
+type DiscoverOptions struct {
+	Type     MediaType // Movie or TV; "" means Movie
+	Genres   []string  // genre names, any letter case; all must match (AND); empty means any genre
+	Language string    // original language, 2-letter code such as "ko"; "" means any
+	Country  string    // origin country, 2-letter code such as "KR"; "" means any
+	Year     int       // movies: release year; TV: first air year; 0 means any year
+	MinVotes int       // minimum vote count; 0 means no minimum
+}
+
+// Discover returns movies or TV shows matching o. Only the first page (20
+// results) is returned.
+func (c *Client) Discover(ctx context.Context, o DiscoverOptions) ([]Result, error) {
+	t := o.Type
+	if t == "" {
+		t = Movie
+	}
+	if t != Movie && t != TV {
+		return nil, fmt.Errorf("invalid type %q: must be movie or tv", t)
+	}
+
+	ids, err := c.genreIDs(ctx, t, o.Genres)
+	if err != nil {
+		return nil, err
+	}
+
+	q := url.Values{}
+	q.Set("sort_by", "popularity.desc")
+	q.Set("include_adult", "false")
+	if len(ids) > 0 {
+		parts := make([]string, len(ids))
+		for i, id := range ids {
+			parts[i] = strconv.Itoa(id)
+		}
+		q.Set("with_genres", strings.Join(parts, ","))
+	}
+	if o.Language != "" {
+		q.Set("with_original_language", o.Language)
+	}
+	if o.Country != "" {
+		q.Set("with_origin_country", o.Country)
+	}
+	if o.MinVotes > 0 {
+		q.Set("vote_count.gte", strconv.Itoa(o.MinVotes))
+	}
+	if o.Year > 0 {
+		if t == TV {
+			q.Set("first_air_date_year", strconv.Itoa(o.Year))
+		} else {
+			q.Set("primary_release_year", strconv.Itoa(o.Year))
+		}
+	}
+
+	var resp struct {
+		Results []item `json:"results"`
+	}
+	if err := c.get(ctx, "/discover/"+string(t), q, &resp); err != nil {
+		return nil, err
+	}
+
+	results := make([]Result, 0, len(resp.Results))
+	for _, it := range resp.Results {
+		results = append(results, it.result(t))
+	}
+	return results, nil
+}
+
 // ShortsOptions filters the short-movie list.
 type ShortsOptions struct {
 	Genre string // genre name, any letter case; empty means all genres
