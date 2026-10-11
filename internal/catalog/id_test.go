@@ -48,3 +48,27 @@ func TestIDMarshalJSON(t *testing.T) {
 		t.Errorf("Marshal = %s, want %s", got, want)
 	}
 }
+
+func TestIDUnmarshalJSON(t *testing.T) {
+	for _, want := range []ID{{Movie, 27205}, {TV, 1399}} {
+		b, err := json.Marshal(want)
+		if err != nil {
+			t.Fatalf("Marshal(%+v): %v", want, err)
+		}
+		var got ID
+		if err := json.Unmarshal(b, &got); err != nil {
+			t.Fatalf("Unmarshal(%s): %v", b, err)
+		}
+		if got != want {
+			t.Errorf("round trip = %+v, want %+v", got, want)
+		}
+	}
+
+	var got ID
+	if err := json.Unmarshal([]byte(`"person:5"`), &got); err == nil {
+		t.Errorf("Unmarshal invalid id = %+v, want error", got)
+	}
+	if got != (ID{}) {
+		t.Errorf("failed Unmarshal changed the value to %+v", got)
+	}
+}
