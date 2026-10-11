@@ -19,7 +19,8 @@ directory):
 cinedeck config init
 ```
 
-Search for a movie or show:
+The commands below are planned for the next milestone and are not available
+yet. Search for a movie or show:
 
 ```
 cinedeck search inception
