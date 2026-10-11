@@ -1,0 +1,90 @@
+{
+  "page": 1,
+  "results": [
+    {
+      "id": 65733,
+      "name": "Doraemon",
+      "original_name": "ドラえもん",
+      "first_air_date": "2005-04-22",
+      "vote_average": 8.1,
+      "vote_count": 249,
+      "popularity": 317.7933,
+      "genre_ids": [
+        10759,
+        16,
+        35,
+        10765,
+        10762,
+        10751
+      ],
+      "origin_country": [
+        "JP"
+      ],
+      "original_language": "ja",
+      "overview": "Robotic cat Doraemon is sent back in time from the 22nd century to protect 10-year-old Noby, a lazy and uncoordinated boy who is destined to have a tragic future. Doraemon can create secret gadgets from a pocket on his stomach, but they usually cause more bad than good because of Noby's propensity to misuse them.",
+      "poster_path": "/9ZN1P32SHviL3SV51qLivxycvcx.jpg"
+    },
+    {
+      "id": 46260,
+      "name": "Naruto",
+      "original_name": "ナルト",
+      "first_air_date": "2002-10-03",
+      "vote_average": 8.362,
+      "vote_count": 6145,
+      "popularity": 169.2901,
+      "genre_ids": [
+        16,
+        10759,
+        10765
+      ],
+      "origin_country": [
+        "JP"
+      ],
+      "original_language": "ja",
+      "overview": "Naruto Uzumaki, a mischievous adolescent ninja, struggles as he searches for recognition and dreams of becoming the Hokage, the village's leader and strongest ninja.",
+      "poster_path": "/xppeysfvDKVx775MFuH8Z9BlpMk.jpg"
+    },
+    {
+      "id": 30984,
+      "name": "Bleach",
+      "original_name": "BLEACH",
+      "first_air_date": "2004-10-05",
+      "vote_average": 8.354,
+      "vote_count": 2291,
+      "popularity": 164.4672,
+      "genre_ids": [
+        10759,
+        16,
+        10765
+      ],
+      "origin_country": [
+        "JP"
+      ],
+      "original_language": "ja",
+      "overview": "For as long as he can remember, Ichigo Kurosaki has been able to see ghosts. But when he meets Rukia, a Soul Reaper who battles evil spirits known as Hollows, he finds his life is changed forever. Now, with a newfound wealth of spiritual energy, Ichigo discovers his true calling: to protect the living and the dead from evil.",
+      "poster_path": "/2EewmxXe72ogD0EaWM8gqa0ccIw.jpg"
+    },
+    {
+      "id": 94664,
+      "name": "Mushoku Tensei: Jobless Reincarnation",
+      "original_name": "無職転生 ～異世界行ったら本気だす～",
+      "first_air_date": "2021-01-11",
+      "vote_average": 8.439,
+      "vote_count": 1775,
+      "popularity": 160.8338,
+      "genre_ids": [
+        10759,
+        16,
+        10765
+      ],
+      "origin_country": [
+        "JP"
+      ],
+      "original_language": "ja",
+      "overview": "When a 34-year-old underachiever gets run over by a truck, his story doesn't end there. Reincarnated in a new world as an infant, Rudy will seize every opportunity to live the life he's always wanted. Armed with new friends, some freshly acquired magical abilities, and the courage to do the things he's always dreamed of, he's embarking on an epic adventure—with all of his past experience intact!",
+      "poster_path": "/gLKOYIMyKlUHW0SVdskhgf9C0yy.jpg"
+    }
+  ],
+  "total_pages": 53,
+  "total_results": 1045
+}

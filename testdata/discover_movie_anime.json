@@ -1,0 +1,75 @@
+{
+  "page": 1,
+  "results": [
+    {
+      "id": 1311031,
+      "title": "Demon Slayer: Kimetsu no Yaiba Infinity Castle",
+      "original_title": "劇場版「鬼滅の刃」無限城編 第一章 猗窩座再来",
+      "release_date": "2025-07-18",
+      "vote_average": 8.798,
+      "vote_count": 2264,
+      "popularity": 56.2685,
+      "genre_ids": [
+        16,
+        28,
+        14
+      ],
+      "original_language": "ja",
+      "overview": "The Demon Slayer Corps are drawn into the Infinity Castle, where Tanjiro, Nezuko, and the Hashira face terrifying Upper Rank demons in a desperate fight as the final battle against Muzan Kibutsuji begins.",
+      "poster_path": "/fWVSwgjpT2D78VUh6X8UBd2rorW.jpg"
+    },
+    {
+      "id": 4935,
+      "title": "Howl's Moving Castle",
+      "original_title": "ハウルの動く城",
+      "release_date": "2004-09-09",
+      "vote_average": 8.4,
+      "vote_count": 11553,
+      "popularity": 46.3487,
+      "genre_ids": [
+        14,
+        16,
+        12
+      ],
+      "original_language": "ja",
+      "overview": "Sophie, a young milliner, is turned into an elderly woman by a witch who enters her shop and curses her. She encounters a wizard named Howl and gets caught up in his resistance to fighting for the king.",
+      "poster_path": "/13kOl2v0nD2OLbVSHnHk8GUFEhO.jpg"
+    },
+    {
+      "id": 129,
+      "title": "Spirited Away",
+      "original_title": "千と千尋の神隠し",
+      "release_date": "2001-07-20",
+      "vote_average": 8.536,
+      "vote_count": 19024,
+      "popularity": 43.109,
+      "genre_ids": [
+        16,
+        10751,
+        14
+      ],
+      "original_language": "ja",
+      "overview": "A young girl, Chihiro, becomes trapped in a strange new world of spirits. When her parents undergo a mysterious transformation, she must call upon the courage she never knew she had to free her family.",
+      "poster_path": "/39wmItIWsg5sZMyRUHLkWBcuVCM.jpg"
+    },
+    {
+      "id": 372058,
+      "title": "Your Name.",
+      "original_title": "君の名は。",
+      "release_date": "2016-07-01",
+      "vote_average": 8.49,
+      "vote_count": 13083,
+      "popularity": 31.8667,
+      "genre_ids": [
+        16,
+        10749,
+        18
+      ],
+      "original_language": "ja",
+      "overview": "High schoolers Mitsuha and Taki are complete strangers living separate lives. But one night, they suddenly switch places. Mitsuha wakes up in Taki’s body, and he in hers. This bizarre occurrence continues to happen randomly, and the two must adjust their lives around each other.",
+      "poster_path": "/vfJFJPepRKapMd5G2ro7klIRysq.jpg"
+    }
+  ],
+  "total_pages": 36,
+  "total_results": 703
+}

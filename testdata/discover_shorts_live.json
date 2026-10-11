@@ -1,0 +1,77 @@
+{
+  "page": 1,
+  "results": [
+    {
+      "id": 35,
+      "title": "The Simpsons Movie",
+      "original_title": "The Simpsons Movie",
+      "release_date": "2007-07-25",
+      "vote_average": 7.023,
+      "vote_count": 8767,
+      "popularity": 18.9838,
+      "genre_ids": [
+        16,
+        35,
+        10751
+      ],
+      "original_language": "en",
+      "overview": "After Homer accidentally pollutes the town's water supply, Springfield is encased in a gigantic dome by the EPA and the Simpsons are declared fugitives.",
+      "poster_path": "/s3b8TZWwmkYc2KoJ5zk77qB6PzY.jpg"
+    },
+    {
+      "id": 1076364,
+      "title": "Carl's Date",
+      "original_title": "Carl's Date",
+      "release_date": "2023-06-15",
+      "vote_average": 7.439,
+      "vote_count": 467,
+      "popularity": 14.2057,
+      "genre_ids": [
+        16,
+        10751,
+        35,
+        10749
+      ],
+      "original_language": "en",
+      "overview": "Carl Fredricksen reluctantly agrees to go on a date with a lady friend—but admittedly has no idea how dating works these days. Ever the helpful friend, Dug steps in to calm Carl's pre-date jitters and offer some tried-and-true tips for making friends—if you're a dog.",
+      "poster_path": "/wakoF2UgsEE3fGs5KpuwMWsaNr2.jpg"
+    },
+    {
+      "id": 14813,
+      "title": "Mickey's Christmas Carol",
+      "original_title": "Mickey's Christmas Carol",
+      "release_date": "1983-10-19",
+      "vote_average": 7.667,
+      "vote_count": 1012,
+      "popularity": 13.813,
+      "genre_ids": [
+        10751,
+        16
+      ],
+      "original_language": "en",
+      "overview": "Ebenezer Scrooge is far too greedy to understand that Christmas is a time for kindness and generosity. But with the guidance of some new found friends, Scrooge learns to embrace the spirit of the season. A retelling of the classic Dickens tale with Disney's classic characters.",
+      "poster_path": "/hOuEgnB9jfVneEsulMcqEJE4kSL.jpg"
+    },
+    {
+      "id": 421892,
+      "title": "Shrek 5",
+      "original_title": "Shrek 5",
+      "release_date": "2027-06-30",
+      "vote_average": 0.0,
+      "vote_count": 0,
+      "popularity": 11.0793,
+      "genre_ids": [
+        35,
+        16,
+        14,
+        12,
+        10751
+      ],
+      "original_language": "en",
+      "overview": "Shrek and Donkey team up for another whirlwind, big-city adventure, this time in the magical city of Further Further Away.",
+      "poster_path": "/m9jLiemA7t2umlXKptDwtIUHU8l.jpg"
+    }
+  ],
+  "total_pages": 1001,
+  "total_results": 20001
+}

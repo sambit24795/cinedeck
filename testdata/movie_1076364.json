@@ -1,0 +1,53 @@
+{
+  "id": 1076364,
+  "title": "Carl's Date",
+  "original_title": "Carl's Date",
+  "original_language": "en",
+  "release_date": "2023-06-15",
+  "runtime": 9,
+  "status": "Released",
+  "vote_average": 7.44,
+  "overview": "Carl Fredricksen reluctantly agrees to go on a date with a lady friend—but admittedly has no idea how dating works these days. Ever the helpful friend, Dug steps in to calm Carl's pre-date jitters and offer some tried-and-true tips for making friends—if you're a dog.",
+  "genres": [
+    {
+      "id": 16,
+      "name": "Animation"
+    },
+    {
+      "id": 10751,
+      "name": "Family"
+    },
+    {
+      "id": 35,
+      "name": "Comedy"
+    },
+    {
+      "id": 10749,
+      "name": "Romance"
+    }
+  ],
+  "credits": {
+    "cast": [
+      {
+        "id": 68812,
+        "name": "Ed Asner",
+        "character": "Carl (voice)",
+        "order": 0
+      },
+      {
+        "id": 10,
+        "name": "Bob Peterson",
+        "character": "Dug / Alpha (voice)",
+        "order": 1
+      }
+    ],
+    "crew": [
+      {
+        "id": 10,
+        "name": "Bob Peterson",
+        "job": "Director",
+        "department": "Directing"
+      }
+    ]
+  }
+}
