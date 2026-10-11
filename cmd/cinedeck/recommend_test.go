@@ -654,6 +654,23 @@ func TestRecommendPersonalValidationUntouched(t *testing.T) {
 	if _, statErr := os.Stat(path); !errors.Is(statErr, os.ErrNotExist) {
 		t.Errorf("Stat = %v, want os.ErrNotExist", statErr)
 	}
+
+	// With a seeded library and no token, a token check placed before the flag
+	// validation would return the "config init" error instead of the flag error.
+	if _, err := runRootCmd(t, "like", "movie:27205", "--config", cfg); err != nil {
+		t.Fatalf("like movie: %v", err)
+	}
+	t.Setenv("CINEDECK_TMDB_TOKEN", "")
+	for _, tc := range cases {
+		args := append(tc.args, "--config", cfg)
+		_, err := runRootCmd(t, args...)
+		if err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("seeded %v: err = %v, want it to contain %q", tc.args, err, tc.want)
+		}
+		if err != nil && strings.Contains(err.Error(), "config init") {
+			t.Errorf("seeded %v: err = %v, want the flag error, not the config error", tc.args, err)
+		}
+	}
 }
 
 func TestRecommendPersonalTokenMissing(t *testing.T) {
