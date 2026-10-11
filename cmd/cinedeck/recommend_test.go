@@ -5,6 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -35,9 +38,68 @@ func recommendRoutes() map[string]string {
 func setupRecommend(t *testing.T) (string, *[]url.Values) {
 	t.Helper()
 	queries := &[]url.Values{}
-	srv := discoverServer(t, recommendRoutes(), queries)
+	srv := recommendServer(t, queries)
 	setCatalogEnv(t, srv)
 	return filepath.Join(t.TempDir(), "none.toml"), queries
+}
+
+// metaKeyword is one keyword in a generated detail response.
+type metaKeyword struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
+// tvMeta builds a minimal TMDB TV detail response body with the keywords the
+// cross-type filter checks. The discover candidates have no testdata fixture.
+func tvMeta(name string, keywords []metaKeyword) string {
+	body, err := json.Marshal(map[string]any{
+		"name":           name,
+		"first_air_date": "2000-01-01",
+		"genres":         []map[string]any{},
+		"keywords":       map[string]any{"results": keywords},
+		"created_by":     []map[string]any{},
+	})
+	if err != nil {
+		panic(err)
+	}
+	return string(body)
+}
+
+// recommendServer serves the recommend fixtures plus generated detail
+// responses for the cross-type discover candidates, and records discover
+// queries.
+func recommendServer(t *testing.T, queries *[]url.Values) *httptest.Server {
+	t.Helper()
+	routes := recommendRoutes()
+	metas := map[string]string{
+		"/tv/40075": tvMeta("Gravity Falls", []metaKeyword{{10364, "mission"}, {1566, "dreams"}, {1930, "kidnapping"}}),
+		"/tv/4455":  tvMeta("Get Smart", []metaKeyword{{470, "spy"}, {1501, "allegory"}}),
+		"/tv/2473":  tvMeta("The Avengers", []metaKeyword{{10051, "heist"}, {10937, "memory"}}),
+		"/tv/95396": tvMeta("Severance", []metaKeyword{{1566, "dreams"}, {10051, "heist"}}),
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if queries != nil && strings.HasPrefix(r.URL.Path, "/discover/") {
+			*queries = append(*queries, r.URL.Query())
+		}
+		if body, ok := metas[r.URL.Path]; ok {
+			w.Header().Set("Content-Type", "application/json")
+			io.WriteString(w, body)
+			return
+		}
+		name, ok := routes[r.URL.Path]
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+		body, err := os.ReadFile("../../testdata/" + name)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(body)
+	}))
+	t.Cleanup(srv.Close)
+	return srv
 }
 
 // dataRows returns the output lines after the table header.
@@ -165,7 +227,13 @@ func TestRecommendFromMovieToTV(t *testing.T) {
 	}
 
 	rows := dataRows(out)
-	wantIDs := []string{"tv:40075", "tv:4455", "tv:2473", "tv:95396"}
+	wantIDs := []string{"tv:40075", "tv:2473", "tv:4455", "tv:95396"}
+	wantReasons := []string{
+		"shares keywords with Inception (mission, dreams)",
+		"shares keywords with Inception (heist, memory)",
+		"shares keywords with Inception (spy, allegory)",
+		"shares keywords with Inception (dreams, heist)",
+	}
 	if len(rows) != len(wantIDs) {
 		t.Fatalf("rows = %d, want %d", len(rows), len(wantIDs))
 	}
@@ -173,8 +241,8 @@ func TestRecommendFromMovieToTV(t *testing.T) {
 		if !strings.Contains(rows[i], id) {
 			t.Errorf("row %d = %q, want it to contain %q", i, rows[i], id)
 		}
-		if !strings.Contains(rows[i], "shares keywords with Inception") {
-			t.Errorf("row %d = %q, want the shares-keywords reason", i, rows[i])
+		if !strings.Contains(rows[i], wantReasons[i]) {
+			t.Errorf("row %d = %q, want it to contain %q", i, rows[i], wantReasons[i])
 		}
 	}
 }

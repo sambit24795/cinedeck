@@ -3,6 +3,7 @@ package recs
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/sambit24795/cinedeck/internal/catalog"
@@ -15,6 +16,10 @@ const (
 
 	MaxQueryKeywords = 5 // keywords sent to discover
 	MaxQueryGenres   = 3 // genre ids sent to a "any of" discover
+
+	// CrossEnrichTop is how many cross-type candidates are looked up in
+	// detail to check their shared keywords before filtering and ranking.
+	CrossEnrichTop = 12
 )
 
 // CheckLimit returns nil for 1..MaxLimit, else the error: invalid --limit <n>: want 1 to 50
@@ -94,6 +99,9 @@ type FromResult struct {
 }
 
 // From recommends titles like id. Source titles are never included in the result.
+// Request bound: the same type needs 1 (meta) + 2 (recommendations, similar);
+// the other type needs 2 (discover) + at most CrossEnrichTop (12) detail
+// lookups, so --type any uses at most 1 + 2 + 2 + 12 = 17 requests.
 func From(ctx context.Context, src Source, id catalog.ID, o FromOptions) (*FromResult, error) {
 	m, err := src.Meta(ctx, id)
 	if err != nil {
@@ -146,8 +154,67 @@ func firstInts(v []int, n int) []int {
 	return v
 }
 
+// poolEntry is one candidate of the cross-type pool: its list entry and which
+// of the two discover queries produced it.
+type poolEntry struct {
+	rel              catalog.Related
+	fromKeywordQuery bool
+}
+
+// pickFrom copies a list entry into a Pick with the given reason.
+func pickFrom(r catalog.Related, reason string) Pick {
+	return Pick{ID: r.ID, Title: r.Title, Year: r.Year, Rating: r.Rating, Reason: reason}
+}
+
+// sharedGenreCount returns how many of the source's canonical genres appear in
+// the list entry's genre ids for target.
+func sharedGenreCount(sourceKeys []string, target catalog.MediaType, genreIDs []int) int {
+	if len(sourceKeys) == 0 {
+		return 0
+	}
+	set := map[string]bool{}
+	for _, g := range CanonGenres(target, genreIDs) {
+		set[g] = true
+	}
+	n := 0
+	for _, k := range sourceKeys {
+		if set[k] {
+			n++
+		}
+	}
+	return n
+}
+
+// sharedKeywords returns the number of distinct candidate keywords that the
+// source also has, and the names of up to two of them in the source's order.
+func sharedKeywords(source, cm *catalog.Meta) (count int, names []string) {
+	inSource := map[int]bool{}
+	for _, k := range source.Keywords {
+		inSource[k.ID] = true
+	}
+	seen := map[int]bool{}
+	for _, k := range cm.Keywords {
+		if inSource[k.ID] {
+			seen[k.ID] = true
+		}
+	}
+	count = len(seen)
+	for _, k := range source.Keywords {
+		if len(names) == 2 {
+			break
+		}
+		if seen[k.ID] {
+			names = append(names, k.Name)
+		}
+	}
+	return count, names
+}
+
 // crossPicks finds titles of type target that share keywords and genres with m
-// (target differs from m.ID.Type).
+// (target differs from m.ID.Type). Shared genres come from the discover list
+// entries; shared keywords are checked on the candidate details. A candidate
+// is kept when it shares at least two keywords, or one keyword and at least two
+// genres. When m has no keywords only the genre query runs.
 func crossPicks(ctx context.Context, src Source, m *catalog.Meta, target catalog.MediaType, limit int) ([]Pick, error) {
 	keys := CanonGenres(m.ID.Type, m.GenreIDs)
 	ids := GenreIDsFor(target, keys)
@@ -160,24 +227,15 @@ func crossPicks(ctx context.Context, src Source, m *catalog.Meta, target catalog
 		kw = append(kw, k.ID)
 	}
 
-	picks := []Pick{}
+	pool := []poolEntry{}
 	seen := map[catalog.ID]bool{}
-	add := func(list []catalog.Related, reason string) {
-		for _, r := range list {
-			if len(picks) >= limit {
-				return
-			}
+	addPool := func(results []catalog.Related, fromKeywordQuery bool) {
+		for _, r := range results {
 			if seen[r.ID] {
 				continue
 			}
 			seen[r.ID] = true
-			picks = append(picks, Pick{
-				ID:     r.ID,
-				Title:  r.Title,
-				Year:   r.Year,
-				Rating: r.Rating,
-				Reason: reason,
-			})
+			pool = append(pool, poolEntry{rel: r, fromKeywordQuery: fromKeywordQuery})
 		}
 	}
 
@@ -191,7 +249,7 @@ func crossPicks(ctx context.Context, src Source, m *catalog.Meta, target catalog
 		if err != nil {
 			return nil, err
 		}
-		add(results, "shares keywords with "+m.Title)
+		addPool(results, true)
 	}
 
 	if len(ids) > 0 {
@@ -204,8 +262,73 @@ func crossPicks(ctx context.Context, src Source, m *catalog.Meta, target catalog
 		if err != nil {
 			return nil, err
 		}
-		add(results, "shares genres with "+m.Title)
+		addPool(results, false)
 	}
 
+	// Without source keywords the keyword query does not run: keep the
+	// genre-only behaviour, with no detail requests.
+	if len(m.Keywords) == 0 {
+		picks := []Pick{}
+		for _, pe := range pool {
+			if len(picks) >= limit {
+				break
+			}
+			picks = append(picks, pickFrom(pe.rel, "shares genres with "+m.Title))
+		}
+		return picks, nil
+	}
+
+	// Shared genres are known from the list entries alone.
+	sg := make([]int, len(pool))
+	for i, pe := range pool {
+		sg[i] = sharedGenreCount(keys, target, pe.rel.GenreIDs)
+	}
+
+	// Stable sort by shared genres descending; ties keep the pool order
+	// (query 1 first, then query 2; both are popularity-sorted by TMDB).
+	order := make([]int, len(pool))
+	for i := range order {
+		order[i] = i
+	}
+	sort.SliceStable(order, func(a, b int) bool { return sg[order[a]] > sg[order[b]] })
+
+	type candidate struct {
+		pick Pick
+		sk   int
+	}
+	cands := make([]candidate, 0, len(pool))
+	enriched := 0
+	for _, idx := range order {
+		if enriched >= CrossEnrichTop {
+			break
+		}
+		enriched++
+		pe := pool[idx]
+		cm, err := src.Meta(ctx, pe.rel.ID)
+		if err != nil {
+			if ctx.Err() != nil {
+				return nil, err
+			}
+			continue
+		}
+		sk, names := sharedKeywords(m, cm)
+		if sk >= 2 || (sk >= 1 && sg[idx] >= 2) {
+			reason := "shares keywords with " + m.Title + " (" + strings.Join(names, ", ") + ")"
+			cands = append(cands, candidate{pick: pickFrom(pe.rel, reason), sk: sk})
+		}
+	}
+
+	// Rank by shared keywords, then shared genres, then pool order: the input
+	// is already sorted by shared genres (stable), so a stable sort on the
+	// shared keyword count gives the remaining order.
+	sort.SliceStable(cands, func(i, j int) bool { return cands[i].sk > cands[j].sk })
+
+	picks := []Pick{}
+	for _, c := range cands {
+		if len(picks) >= limit {
+			break
+		}
+		picks = append(picks, c.pick)
+	}
 	return picks, nil
 }
