@@ -15,6 +15,7 @@ type Result struct {
 	Year     int     `json:"year"`   // 0 when the date is empty
 	Rating   float64 `json:"rating"` // TMDB vote_average
 	Overview string  `json:"overview"`
+	Poster   string  `json:"poster,omitempty"`
 }
 
 // item is one entry from a TMDB list response (search, discover or trending).
@@ -27,6 +28,7 @@ type item struct {
 	FirstAirDate string  `json:"first_air_date"`
 	VoteAverage  float64 `json:"vote_average"`
 	Overview     string  `json:"overview"`
+	PosterPath   string  `json:"poster_path"`
 }
 
 // result converts it to a Result. mt is used as the media type; names and
@@ -36,6 +38,7 @@ func (it item) result(mt MediaType) Result {
 		ID:       ID{Type: mt, N: it.ID},
 		Rating:   it.VoteAverage,
 		Overview: it.Overview,
+		Poster:   imageURL(posterSize, it.PosterPath),
 	}
 	if mt == TV {
 		r.Title = it.Name
