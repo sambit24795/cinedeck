@@ -64,6 +64,19 @@ cinedeck anime --type movie --genre action
 
 `discover` needs at least one of `--genre`, `--lang` (2-letter code such as `ko`), `--country` (2-letter code such as `KR`) or `--year`. Genre names are TMDB's and differ between movies and TV (for example TV has "Action & Adventure" and no "Romance"); an unknown name lists the valid ones. The presets skip titles with fewer than 50 votes, so very new titles may not show up yet. `shorts` only lists titles whose real runtime is 40 minutes or less.
 
+Keep track of what you like, rate and want to watch. Everything is stored locally in a SQLite file (see below), so `watchlist ls` and `history` work offline. Each command takes an id or a title; a title is searched on TMDB (`--first` picks the first hit).
+
+```
+cinedeck like movie:27205
+cinedeck rate "the matrix" 9 --first
+cinedeck watchlist add tv:1399
+cinedeck watchlist ls
+cinedeck watched movie:27205
+cinedeck history
+```
+
+`rate` takes a number from 1 to 10 and also marks the title as watched. A rating of 4 or less counts as "disliked" (the title will not be recommended), and 8 or more counts like a like. Undo with `unlike`, `unrate`, `unwatch` and `watchlist rm`; repeating a command is harmless. Marking a title as watched removes it from the watchlist.
+
 See where a title is available (by id or by title). The region comes from your config; `--region` overrides it:
 
 ```
@@ -74,6 +87,16 @@ cinedeck where "game of thrones" --first
 Results are grouped as Stream, Free, With ads, Rent and Buy, followed by the TMDB watch page link. TMDB does not provide a link per provider.
 
 Add `--json` to any of these for machine-readable output (with `where`, the JustWatch notice is also printed to stderr).
+
+## Where your data is stored
+
+Your library is one SQLite file, `library.db`, in:
+
+- Linux and Termux: `$XDG_DATA_HOME/cinedeck/` (usually `~/.local/share/cinedeck/`)
+- macOS: `~/Library/Application Support/cinedeck/`
+- Windows: `%LOCALAPPDATA%\cinedeck\`
+
+Set `CINEDECK_DATA_DIR` to use another directory. The file holds the titles you liked, rated, watched or added to your watchlist, with their TMDB title, year, genres, keywords, top cast and director. It never leaves your machine. Delete the file to start over.
 
 ## Attribution
 
