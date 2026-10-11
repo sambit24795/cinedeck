@@ -1,0 +1,19 @@
+package main
+
+import "github.com/spf13/cobra"
+
+var version = "dev"
+
+func newRootCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:          "cinedeck",
+		Version:      version,
+		SilenceUsage: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return cmd.Help()
+		},
+	}
+	cmd.PersistentFlags().Bool("json", false, "output as JSON")
+	cmd.PersistentFlags().String("region", "", "region code")
+	return cmd
+}
