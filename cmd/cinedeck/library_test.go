@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -45,6 +47,40 @@ func TestDataDirIsSandboxed(t *testing.T) {
 	}
 	if strings.Contains(dir, ".local/share") {
 		t.Errorf("CINEDECK_DATA_DIR = %q, want it not to contain %q", dir, ".local/share")
+	}
+}
+
+func TestReadOnlyCommandsDoNotCreateDatabase(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "fresh")
+	t.Setenv("CINEDECK_DATA_DIR", dir)
+	cfg := filepath.Join(t.TempDir(), "none.toml")
+
+	out, err := runRootCmd(t, "history", "--config", cfg)
+	if err != nil {
+		t.Fatalf("history Execute: %v", err)
+	}
+	if want := "No watch history yet. Mark titles with: cinedeck watched <id|title>\n"; out != want {
+		t.Errorf("history stdout = %q, want %q", out, want)
+	}
+
+	out, err = runRootCmd(t, "watchlist", "ls", "--config", cfg)
+	if err != nil {
+		t.Fatalf("watchlist ls Execute: %v", err)
+	}
+	if want := "Your watchlist is empty. Add titles with: cinedeck watchlist add <id|title>\n"; out != want {
+		t.Errorf("watchlist ls stdout = %q, want %q", out, want)
+	}
+
+	out, err = runRootCmd(t, "unlike", "movie:1", "--config", cfg)
+	if err != nil {
+		t.Fatalf("unlike Execute: %v", err)
+	}
+	if want := "Not in your likes: movie:1\n"; out != want {
+		t.Errorf("unlike stdout = %q, want %q", out, want)
+	}
+
+	if _, statErr := os.Stat(dir); !errors.Is(statErr, os.ErrNotExist) {
+		t.Errorf("data dir Stat = %v, want os.ErrNotExist", statErr)
 	}
 }
 

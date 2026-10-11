@@ -136,6 +136,48 @@ func TestOpenReopen(t *testing.T) {
 	}
 }
 
+func TestOpenExistingMissing(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "sub")
+	path := filepath.Join(dir, "library.db")
+
+	_, err := OpenExisting(path)
+	if !errors.Is(err, ErrNoDatabase) {
+		t.Fatalf("OpenExisting = %v, want ErrNoDatabase", err)
+	}
+	if _, statErr := os.Stat(dir); !errors.Is(statErr, os.ErrNotExist) {
+		t.Errorf("data dir: Stat = %v, want os.ErrNotExist", statErr)
+	}
+}
+
+func TestOpenExisting(t *testing.T) {
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "library.db")
+
+	l, err := Open(path)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	if err := l.SetMeta(ctx, "k", "v"); err != nil {
+		t.Fatalf("SetMeta: %v", err)
+	}
+	if err := l.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+
+	reopened, err := OpenExisting(path)
+	if err != nil {
+		t.Fatalf("OpenExisting: %v", err)
+	}
+	defer reopened.Close()
+	got, ok, err := reopened.GetMeta(ctx, "k")
+	if err != nil {
+		t.Fatalf("GetMeta: %v", err)
+	}
+	if !ok || got != "v" {
+		t.Errorf("GetMeta = %q, %v; want %q, true", got, ok, "v")
+	}
+}
+
 func TestOpenQuestionMarkInPath(t *testing.T) {
 	ctx := context.Background()
 	parent := t.TempDir()

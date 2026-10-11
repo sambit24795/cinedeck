@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/sambit24795/cinedeck/internal/catalog"
@@ -19,6 +20,23 @@ func openLibrary() (*library.Library, error) {
 	return library.Open(path)
 }
 
+// openLibraryIfExists opens the library at config.LibraryPath() without
+// creating it. It returns (nil, nil) when the database does not exist yet.
+func openLibraryIfExists() (*library.Library, error) {
+	path, err := config.LibraryPath()
+	if err != nil {
+		return nil, err
+	}
+	lib, err := library.OpenExisting(path)
+	if errors.Is(err, library.ErrNoDatabase) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return lib, nil
+}
+
 // itemLabel renders m as "Inception (2010) [movie:27205]"; with Year 0 it is "Title [movie:1]".
 func itemLabel(m *catalog.Meta) string {
 	if m.Year > 0 {
@@ -30,6 +48,9 @@ func itemLabel(m *catalog.Meta) string {
 // lookup returns the stored title, year and label of id. When the item is not
 // in the library (or cannot be read) title is "", year is 0 and label is id.String().
 func lookup(ctx context.Context, lib *library.Library, id catalog.ID) (title string, year int, label string) {
+	if lib == nil {
+		return "", 0, id.String()
+	}
 	m, err := lib.Item(ctx, id)
 	if err != nil {
 		return "", 0, id.String()

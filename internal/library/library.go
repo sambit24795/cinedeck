@@ -14,6 +14,9 @@ import (
 	_ "modernc.org/sqlite" // registers the "sqlite" driver
 )
 
+// ErrNoDatabase is returned by OpenExisting when the database file does not exist.
+var ErrNoDatabase = errors.New("library: no database")
+
 // Library is the local database of items, likes, ratings, watched titles and the watchlist.
 type Library struct {
 	db  *sql.DB
@@ -51,6 +54,18 @@ func Open(path string) (*Library, error) {
 		return nil, err
 	}
 	return &Library{db: db, now: time.Now}, nil
+}
+
+// OpenExisting opens the database at path without creating it. It returns
+// ErrNoDatabase when the file does not exist, and otherwise behaves like Open.
+func OpenExisting(path string) (*Library, error) {
+	if _, err := os.Stat(path); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, ErrNoDatabase
+		}
+		return nil, fmt.Errorf("library: %w", err)
+	}
+	return Open(path)
 }
 
 // sqliteDSN builds the DSN for path. The driver splits the DSN at the first

@@ -60,16 +60,21 @@ func newUnwatchCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			lib, err := openLibrary()
+			lib, err := openLibraryIfExists()
 			if err != nil {
 				return err
 			}
-			defer lib.Close()
+			if lib != nil {
+				defer lib.Close()
+			}
 
 			ctx := cmd.Context()
-			changed, err := lib.Unwatch(ctx, id)
-			if err != nil {
-				return err
+			changed := false
+			if lib != nil {
+				changed, err = lib.Unwatch(ctx, id)
+				if err != nil {
+					return err
+				}
 			}
 			title, year, label := lookup(ctx, lib, id)
 

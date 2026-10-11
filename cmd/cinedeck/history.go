@@ -18,15 +18,20 @@ func newHistoryCmd() *cobra.Command {
 			if limit < 1 {
 				return fmt.Errorf("invalid --limit %d: must be at least 1", limit)
 			}
-			lib, err := openLibrary()
+			lib, err := openLibraryIfExists()
 			if err != nil {
 				return err
 			}
-			defer lib.Close()
+			if lib != nil {
+				defer lib.Close()
+			}
 
-			entries, err := lib.History(cmd.Context(), limit)
-			if err != nil {
-				return err
+			var entries []library.Entry
+			if lib != nil {
+				entries, err = lib.History(cmd.Context(), limit)
+				if err != nil {
+					return err
+				}
 			}
 
 			if jsonOut, _ := cmd.Flags().GetBool("json"); jsonOut {

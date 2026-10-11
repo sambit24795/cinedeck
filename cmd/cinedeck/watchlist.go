@@ -99,16 +99,21 @@ func newWatchlistRMCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			lib, err := openLibrary()
+			lib, err := openLibraryIfExists()
 			if err != nil {
 				return err
 			}
-			defer lib.Close()
+			if lib != nil {
+				defer lib.Close()
+			}
 
 			ctx := cmd.Context()
-			changed, err := lib.RemoveFromWatchlist(ctx, id)
-			if err != nil {
-				return err
+			changed := false
+			if lib != nil {
+				changed, err = lib.RemoveFromWatchlist(ctx, id)
+				if err != nil {
+					return err
+				}
 			}
 			title, year, label := lookup(ctx, lib, id)
 
@@ -135,15 +140,20 @@ func newWatchlistLSCmd() *cobra.Command {
 		Short: "List your watchlist",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			lib, err := openLibrary()
+			lib, err := openLibraryIfExists()
 			if err != nil {
 				return err
 			}
-			defer lib.Close()
+			if lib != nil {
+				defer lib.Close()
+			}
 
-			entries, err := lib.Watchlist(cmd.Context())
-			if err != nil {
-				return err
+			var entries []library.Entry
+			if lib != nil {
+				entries, err = lib.Watchlist(cmd.Context())
+				if err != nil {
+					return err
+				}
 			}
 
 			if jsonOut, _ := cmd.Flags().GetBool("json"); jsonOut {
