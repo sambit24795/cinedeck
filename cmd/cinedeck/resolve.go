@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
@@ -11,9 +12,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// searcher is the part of the catalog that resolveID needs.
+type searcher interface {
+	Search(ctx context.Context, query string) ([]catalog.Result, error)
+}
+
+var _ searcher = (*catalog.Client)(nil)
+
 // resolveID turns arg into an ID. It accepts a typed id directly, otherwise it
 // searches and either picks the first hit or asks the user to choose.
-func resolveID(cmd *cobra.Command, c *catalog.Client, arg string, first bool) (catalog.ID, error) {
+func resolveID(cmd *cobra.Command, c searcher, arg string, first bool) (catalog.ID, error) {
 	if id, err := catalog.ParseID(arg); err == nil {
 		return id, nil
 	}
