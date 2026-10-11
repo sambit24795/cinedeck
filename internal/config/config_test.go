@@ -8,6 +8,15 @@ import (
 	"testing"
 )
 
+// TestMain makes the tests hermetic: the caller may have the CINEDECK_*
+// overrides exported, and Load would apply them to every test.
+func TestMain(m *testing.M) {
+	for _, key := range []string{"CINEDECK_TMDB_TOKEN", "CINEDECK_TMDB_URL", "CINEDECK_REGION", "CINEDECK_DOWNLOAD_DIR"} {
+		os.Unsetenv(key)
+	}
+	os.Exit(m.Run())
+}
+
 func TestLoadMissingFileReturnsDefaults(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "missing.toml")
 	got, err := Load(path)

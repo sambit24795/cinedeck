@@ -13,6 +13,15 @@ import (
 	"github.com/sambit24795/cinedeck/internal/config"
 )
 
+// TestMain makes the tests hermetic: the caller may have the CINEDECK_*
+// overrides exported, and config.Load would apply them to every test.
+func TestMain(m *testing.M) {
+	for _, key := range []string{"CINEDECK_TMDB_TOKEN", "CINEDECK_TMDB_URL", "CINEDECK_REGION", "CINEDECK_DOWNLOAD_DIR"} {
+		os.Unsetenv(key)
+	}
+	os.Exit(m.Run())
+}
+
 // authServer starts a server that answers GET /authentication with
 // testdata/authentication_ok.json, points CINEDECK_TMDB_URL at it, and
 // returns the server and a pointer to the number of requests it received.
