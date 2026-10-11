@@ -8,9 +8,23 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
+	"github.com/sambit24795/cinedeck/internal/catalog"
 	"github.com/sambit24795/cinedeck/internal/config"
 	"github.com/spf13/cobra"
 )
+
+// tokenHelp is printed before the token prompt by config init.
+const tokenHelp = `You need a free TMDB API token. Each user brings their own.
+1. Make a free account at https://www.themoviedb.org, then open https://www.themoviedb.org/settings/api
+2. Request an API key. In TMDB's application form enter:
+     Application name: cinedeck (personal use)
+     Application URL:  https://github.com/sambit24795/cinedeck
+     Application type: Desktop Application
+     Summary:          A command-line tool for personal use to search movies and TV shows and see where to watch them.
+3. On the same page copy the long "API Read Access Token" (it starts with eyJ).
+   Do not use the short "API Key".
+
+`
 
 // configPath returns the --config flag value, or the default config path when
 // the flag is empty.
@@ -63,6 +77,8 @@ func newConfigInitCmd() *cobra.Command {
 			out := cmd.OutOrStdout()
 			in := bufio.NewReader(cmd.InOrStdin())
 
+			fmt.Fprint(out, tokenHelp)
+
 			// The token is a secret, so the prompt never echoes it.
 			if cfg.TMDBToken == "" {
 				fmt.Fprint(out, "TMDB token: ")
@@ -72,6 +88,19 @@ func newConfigInitCmd() *cobra.Command {
 			if v, err := readAnswer(in); err == nil && v != "" {
 				if isShortAPIKey(v) {
 					return errors.New(`that looks like the TMDB "API Key"; paste the longer "API Read Access Token" instead`)
+				}
+				fmt.Fprint(out, "Checking token with TMDB... ")
+				tokenClient := catalog.New(v, catalog.WithBaseURL(tmdbBaseURL(cfg)))
+				if err := tokenClient.CheckToken(cmd.Context()); err != nil {
+					var apiErr *catalog.APIError
+					if errors.As(err, &apiErr) && apiErr.Status == 401 {
+						fmt.Fprintln(out, "rejected")
+						return errors.New(`TMDB rejected that token (401). Nothing was saved. Use the long "API Read Access Token" from https://www.themoviedb.org/settings/api`)
+					}
+					fmt.Fprintln(out, "could not check")
+					fmt.Fprintf(cmd.ErrOrStderr(), "warning: could not check the token with TMDB (%v); saving it anyway\n", err)
+				} else {
+					fmt.Fprintln(out, "ok")
 				}
 				cfg.TMDBToken = v
 			}
@@ -93,6 +122,17 @@ func newConfigInitCmd() *cobra.Command {
 			return nil
 		},
 	}
+}
+
+// tmdbBaseURL returns the TMDB API root used for the config init token check.
+// The CINEDECK_TMDB_URL environment variable wins over cfg so tests can point
+// the check at an httptest server. cfg comes from loadConfigFile, which does
+// not apply environment overrides.
+func tmdbBaseURL(cfg config.Config) string {
+	if u := os.Getenv("CINEDECK_TMDB_URL"); u != "" {
+		return u
+	}
+	return cfg.TMDBURL
 }
 
 // loadConfigFile decodes the config file at path over the built-in defaults,
