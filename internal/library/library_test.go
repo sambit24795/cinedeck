@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -237,5 +238,44 @@ func TestForeignKeyRejectsOrphanLike(t *testing.T) {
 
 	if _, err := l.db.Exec("INSERT INTO likes VALUES ('movie', 1, 1)"); err == nil {
 		t.Fatal("insert = nil, want error")
+	}
+}
+
+// Several cinedeck processes can start at once on a fresh database. Each
+// goroutine opens its own Library, like a separate process would.
+func TestConcurrentOpenAndWrite(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "library.db")
+	const n = 8
+	errs := make(chan error, n)
+	var wg sync.WaitGroup
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			l, err := Open(path)
+			if err != nil {
+				errs <- err
+				return
+			}
+			defer l.Close()
+			ctx := context.Background()
+			m := inception()
+			if err := l.UpsertItem(ctx, m); err != nil {
+				errs <- err
+				return
+			}
+			if _, err := l.Rate(ctx, m.ID, 9); err != nil {
+				errs <- err
+				return
+			}
+			if _, err := l.Like(ctx, m.ID); err != nil {
+				errs <- err
+			}
+		}()
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		t.Errorf("concurrent use: %v", err)
 	}
 }

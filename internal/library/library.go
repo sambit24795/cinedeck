@@ -35,11 +35,14 @@ func Open(path string) (*Library, error) {
 		return nil, fmt.Errorf("library: %w", err)
 	}
 
-	db, err := sql.Open("sqlite", path+"?_pragma=foreign_keys(1)&_pragma=busy_timeout(5000)")
+	db, err := sql.Open("sqlite", path+"?_pragma=foreign_keys(1)&_pragma=busy_timeout(5000)&_txlock=immediate")
 	if err != nil {
 		return nil, fmt.Errorf("library: %w", err)
 	}
 	db.SetMaxOpenConns(1)
+	// _txlock=immediate makes every transaction take the write lock at BEGIN,
+	// so it waits for other cinedeck processes (busy_timeout) instead of
+	// failing with "database is locked" when a read turns into a write.
 
 	if err := migrate(context.Background(), db, migrations); err != nil {
 		db.Close()
@@ -111,6 +114,16 @@ func migrate(ctx context.Context, db *sql.DB, steps []string) error {
 		tx, err := db.BeginTx(ctx, nil)
 		if err != nil {
 			return fmt.Errorf("library: migration to version %d: %w", i+1, err)
+		}
+		// Another process may have applied this step while we waited for the lock.
+		var cur int
+		if err := tx.QueryRowContext(ctx, "PRAGMA user_version").Scan(&cur); err != nil {
+			tx.Rollback()
+			return fmt.Errorf("library: migration to version %d: %w", i+1, err)
+		}
+		if cur > i {
+			tx.Rollback()
+			continue
 		}
 		if _, err := tx.ExecContext(ctx, steps[i]); err != nil {
 			tx.Rollback()
