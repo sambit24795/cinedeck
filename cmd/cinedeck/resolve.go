@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -44,7 +45,7 @@ func resolveID(cmd *cobra.Command, c *catalog.Client, arg string, first bool) (c
 
 	line, err := bufio.NewReader(cmd.InOrStdin()).ReadString('\n')
 	if err != nil && strings.TrimSpace(line) == "" {
-		return catalog.ID{}, err
+		return catalog.ID{}, errors.New("no selection made")
 	}
 	n, err := strconv.Atoi(strings.TrimSpace(line))
 	if err != nil || n < 1 || n > len(results) {

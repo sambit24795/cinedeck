@@ -3,6 +3,7 @@ package catalog
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -111,7 +112,14 @@ func (c *Client) get(ctx context.Context, path string, q url.Values, out any) er
 
 		resp, err := c.http.Do(req)
 		if err != nil {
-			return err
+			// Unwrap *url.Error so the URL and query are not echoed in the
+			// message; only the underlying reason (for example "connection
+			// refused") is reported.
+			var urlErr *url.Error
+			if errors.As(err, &urlErr) {
+				return fmt.Errorf("tmdb: request failed: %w", urlErr.Err)
+			}
+			return fmt.Errorf("tmdb: request failed: %w", err)
 		}
 		body, err := io.ReadAll(resp.Body)
 		resp.Body.Close()
