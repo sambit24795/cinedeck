@@ -26,5 +26,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newDiscoverCmd())
 	cmd.AddCommand(newKdramaCmd())
 	cmd.AddCommand(newAnimeCmd())
+	cmd.AddCommand(newLikeCmd())
+	cmd.AddCommand(newUnlikeCmd())
 	return cmd
 }

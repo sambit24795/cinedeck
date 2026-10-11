@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -14,12 +15,22 @@ import (
 )
 
 // TestMain makes the tests hermetic: the caller may have the CINEDECK_*
-// overrides exported, and config.Load would apply them to every test.
+// overrides exported, and config.Load would apply them to every test. It also
+// points the data directory at a throw-away directory so library commands can
+// never touch the real one.
 func TestMain(m *testing.M) {
 	for _, key := range []string{"CINEDECK_TMDB_TOKEN", "CINEDECK_TMDB_URL", "CINEDECK_REGION", "CINEDECK_DOWNLOAD_DIR"} {
 		os.Unsetenv(key)
 	}
-	os.Exit(m.Run())
+	dir, err := os.MkdirTemp("", "cinedeck-test-data-")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	os.Setenv("CINEDECK_DATA_DIR", dir)
+	code := m.Run()
+	os.RemoveAll(dir)
+	os.Exit(code)
 }
 
 // authServer starts a server that answers GET /authentication with
