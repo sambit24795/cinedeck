@@ -318,6 +318,23 @@ func TestRecommendPersonalEmpty(t *testing.T) {
 	}
 }
 
+func TestRecommendPersonalEmptyCreatesNothing(t *testing.T) {
+	var paths []string
+	cfg := setupPersonal(t, &paths)
+	dir := filepath.Join(t.TempDir(), "not-yet")
+	t.Setenv("CINEDECK_DATA_DIR", dir)
+	t.Setenv("CINEDECK_TMDB_TOKEN", "")
+
+	for _, args := range [][]string{{"recommend"}, {"recommend", "--json"}} {
+		if _, _, err := runRootCmdSplit(t, append(args, "--config", cfg)...); err != nil {
+			t.Fatalf("%v: %v", args, err)
+		}
+	}
+	if _, err := os.Stat(dir); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("Stat(%s) = %v, want os.ErrNotExist (recommend must not create the data directory)", dir, err)
+	}
+}
+
 func TestRecommendPersonalDislikedOnly(t *testing.T) {
 	var paths []string
 	cfg := setupPersonal(t, &paths)

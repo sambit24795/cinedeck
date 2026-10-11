@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/sambit24795/cinedeck/internal/catalog"
+	"github.com/sambit24795/cinedeck/internal/library"
 	"github.com/sambit24795/cinedeck/internal/recs"
 	"github.com/spf13/cobra"
 )
@@ -56,15 +57,17 @@ func newRecommendCmd() *cobra.Command {
 func runPersonal(cmd *cobra.Command, tf catalog.MediaType, limit int) error {
 	jsonOut, _ := cmd.Flags().GetBool("json")
 
-	lib, err := openLibrary()
+	lib, err := openLibraryIfExists()
 	if err != nil {
 		return err
 	}
-	defer lib.Close()
-
-	entries, err := lib.Entries(cmd.Context())
-	if err != nil {
-		return err
+	var entries []library.Entry
+	if lib != nil {
+		defer lib.Close()
+		entries, err = lib.Entries(cmd.Context())
+		if err != nil {
+			return err
+		}
 	}
 
 	if seeds, _ := recs.Classify(entries); len(seeds) == 0 {
