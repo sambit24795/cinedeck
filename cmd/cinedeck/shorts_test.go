@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -15,6 +16,8 @@ func TestShortsCommand(t *testing.T) {
 	srv := fixtureServer(t, map[string]string{
 		"/genre/movie/list": "genre_movie_list.json",
 		"/discover/movie":   "discover_shorts.json",
+		"/movie/13042":      "movie_13042.json",
+		"/movie/399106":     "movie_399106.json",
 	})
 	setCatalogEnv(t, srv)
 
@@ -30,12 +33,30 @@ func TestShortsCommand(t *testing.T) {
 }
 
 func TestShortsCommandYearWithoutGenre(t *testing.T) {
+	var mu sync.Mutex
 	var gotPaths []string
 	var gotQuery url.Values
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
 		gotPaths = append(gotPaths, r.URL.Path)
-		gotQuery = r.URL.Query()
-		body, err := os.ReadFile("../../testdata/discover_shorts.json")
+		if r.URL.Path == "/discover/movie" {
+			gotQuery = r.URL.Query()
+		}
+		mu.Unlock()
+
+		var name string
+		switch r.URL.Path {
+		case "/discover/movie":
+			name = "discover_shorts.json"
+		case "/movie/13042":
+			name = "movie_13042.json"
+		case "/movie/399106":
+			name = "movie_399106.json"
+		default:
+			http.NotFound(w, r)
+			return
+		}
+		body, err := os.ReadFile("../../testdata/" + name)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -49,11 +70,25 @@ func TestShortsCommandYearWithoutGenre(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
-	if got := gotQuery.Get("primary_release_year"); got != "2008" {
+	mu.Lock()
+	paths := append([]string(nil), gotPaths...)
+	query := gotQuery
+	mu.Unlock()
+
+	if got := query.Get("primary_release_year"); got != "2008" {
 		t.Errorf("primary_release_year = %q, want %q", got, "2008")
 	}
-	if len(gotPaths) != 1 || gotPaths[0] != "/discover/movie" {
-		t.Errorf("paths = %v, want [/discover/movie] only (no genre lookup)", gotPaths)
+	sawDiscover := false
+	for _, p := range paths {
+		if p == "/genre/movie/list" {
+			t.Errorf("paths = %v, want no genre lookup", paths)
+		}
+		if p == "/discover/movie" {
+			sawDiscover = true
+		}
+	}
+	if !sawDiscover {
+		t.Errorf("paths = %v, want it to contain /discover/movie", paths)
 	}
 	if !strings.Contains(out, "Presto") {
 		t.Errorf("output = %q, want it to contain %q", out, "Presto")
@@ -61,7 +96,11 @@ func TestShortsCommandYearWithoutGenre(t *testing.T) {
 }
 
 func TestShortsCommandJSON(t *testing.T) {
-	srv := fixtureServer(t, map[string]string{"/discover/movie": "discover_shorts.json"})
+	srv := fixtureServer(t, map[string]string{
+		"/discover/movie": "discover_shorts.json",
+		"/movie/13042":    "movie_13042.json",
+		"/movie/399106":   "movie_399106.json",
+	})
 	setCatalogEnv(t, srv)
 
 	out, err := runRootCmd(t, "shorts", "--json", "--config", filepath.Join(t.TempDir(), "none.toml"))
@@ -79,5 +118,31 @@ func TestShortsCommandJSON(t *testing.T) {
 	}
 	if got[0].ID != "movie:13042" {
 		t.Errorf("got[0].ID = %q, want %q", got[0].ID, "movie:13042")
+	}
+}
+
+func TestShortsCommandDropsFeatureFilms(t *testing.T) {
+	srv := fixtureServer(t, map[string]string{
+		"/discover/movie": "discover_shorts_live.json",
+		"/movie/35":       "movie_35.json",
+		"/movie/1076364":  "movie_1076364.json",
+		"/movie/14813":    "movie_14813.json",
+		"/movie/421892":   "movie_421892.json",
+	})
+	setCatalogEnv(t, srv)
+
+	out, err := runRootCmd(t, "shorts", "--config", filepath.Join(t.TempDir(), "none.toml"))
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	for _, want := range []string{"Carl's Date", "Mickey's Christmas Carol"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output = %q, want it to contain %q", out, want)
+		}
+	}
+	for _, bad := range []string{"Simpsons", "Shrek 5"} {
+		if strings.Contains(out, bad) {
+			t.Errorf("output = %q, want it not to contain %q", out, bad)
+		}
 	}
 }

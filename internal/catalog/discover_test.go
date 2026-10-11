@@ -2,12 +2,15 @@ package catalog
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 )
 
 func TestGenres(t *testing.T) {
@@ -42,6 +45,14 @@ func TestShorts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadFile: %v", err)
 	}
+	prestoBody, err := os.ReadFile("../../testdata/movie_13042.json")
+	if err != nil {
+		t.Fatalf("ReadFile: %v", err)
+	}
+	piperBody, err := os.ReadFile("../../testdata/movie_399106.json")
+	if err != nil {
+		t.Fatalf("ReadFile: %v", err)
+	}
 	var discoverQuery string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -50,6 +61,10 @@ func TestShorts(t *testing.T) {
 		case "/discover/movie":
 			discoverQuery = r.URL.RawQuery
 			w.Write(discoverBody)
+		case "/movie/13042":
+			w.Write(prestoBody)
+		case "/movie/399106":
+			w.Write(piperBody)
 		default:
 			http.NotFound(w, r)
 		}
@@ -361,6 +376,187 @@ func TestDiscover(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestShortsDropsLongAndUnknownRuntime(t *testing.T) {
+	files := map[string]string{
+		"/discover/movie": "discover_shorts_live.json",
+		"/movie/35":       "movie_35.json",
+		"/movie/1076364":  "movie_1076364.json",
+		"/movie/14813":    "movie_14813.json",
+		"/movie/421892":   "movie_421892.json",
+	}
+	var discoverQuery string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		name, ok := files[r.URL.Path]
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+		if r.URL.Path == "/discover/movie" {
+			discoverQuery = r.URL.RawQuery
+		}
+		body, err := os.ReadFile("../../testdata/" + name)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(body)
+	}))
+	t.Cleanup(srv.Close)
+
+	c := New("tok", WithBaseURL(srv.URL))
+	got, err := c.Shorts(context.Background(), ShortsOptions{})
+	if err != nil {
+		t.Fatalf("Shorts: %v", err)
+	}
+	if !strings.Contains(discoverQuery, "with_runtime.lte=40") {
+		t.Errorf("query = %q, want it to contain with_runtime.lte=40", discoverQuery)
+	}
+	if len(got) != 2 {
+		t.Fatalf("len = %d, want 2", len(got))
+	}
+	if got[0].ID != (ID{Movie, 1076364}) || got[0].Title != "Carl's Date" {
+		t.Errorf("got[0] = %+v, want movie:1076364 Carl's Date", got[0])
+	}
+	if got[1].ID != (ID{Movie, 14813}) || got[1].Title != "Mickey's Christmas Carol" {
+		t.Errorf("got[1] = %+v, want movie:14813 Mickey's Christmas Carol", got[1])
+	}
+}
+
+func TestShortsRuntimeBoundary(t *testing.T) {
+	runtimes := map[string]string{
+		"/movie/101": `{"runtime": 40}`,
+		"/movie/102": `{"runtime": 41}`,
+		"/movie/103": `{"runtime": 1}`,
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/discover/movie" {
+			w.Write([]byte(`{"results":[{"id":101,"title":"t101","release_date":"2020-01-01"},{"id":102,"title":"t102","release_date":"2020-01-01"},{"id":103,"title":"t103","release_date":"2020-01-01"}]}`))
+			return
+		}
+		body, ok := runtimes[r.URL.Path]
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+		w.Write([]byte(body))
+	}))
+	t.Cleanup(srv.Close)
+
+	c := New("tok", WithBaseURL(srv.URL))
+	got, err := c.Shorts(context.Background(), ShortsOptions{})
+	if err != nil {
+		t.Fatalf("Shorts: %v", err)
+	}
+	want := []int64{101, 103}
+	if len(got) != len(want) {
+		t.Fatalf("len = %d, want %d", len(got), len(want))
+	}
+	for i, n := range want {
+		if got[i].ID != (ID{Movie, n}) {
+			t.Errorf("got[%d].ID = %v, want movie:%d", i, got[i].ID, n)
+		}
+	}
+}
+
+func TestShortsDropsMissingDetails(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/discover/movie":
+			w.Write([]byte(`{"results":[{"id":201,"title":"t201","release_date":"2020-01-01"},{"id":202,"title":"t202","release_date":"2020-01-01"}]}`))
+		case "/movie/201":
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte(`{"status_code": 34, "status_message": "The resource you requested could not be found.", "success": false}`))
+		case "/movie/202":
+			w.Write([]byte(`{"runtime": 10}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(srv.Close)
+
+	c := New("tok", WithBaseURL(srv.URL))
+	got, err := c.Shorts(context.Background(), ShortsOptions{})
+	if err != nil {
+		t.Fatalf("Shorts: %v", err)
+	}
+	if len(got) != 1 || got[0].ID != (ID{Movie, 202}) {
+		t.Fatalf("got = %+v, want only movie:202", got)
+	}
+}
+
+func TestShortsDetailErrorFails(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/discover/movie":
+			w.Write([]byte(`{"results":[{"id":301,"title":"t301","release_date":"2020-01-01"},{"id":302,"title":"t302","release_date":"2020-01-01"}]}`))
+		case "/movie/301":
+			w.WriteHeader(http.StatusInternalServerError)
+		case "/movie/302":
+			w.Write([]byte(`{"runtime": 10}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(srv.Close)
+
+	c := New("tok", WithBaseURL(srv.URL))
+	got, err := c.Shorts(context.Background(), ShortsOptions{})
+	if got != nil {
+		t.Errorf("got = %+v, want nil", got)
+	}
+	if err == nil || !strings.Contains(err.Error(), "shorts: runtime of movie:301") {
+		t.Fatalf("err = %v, want it to contain %q", err, "shorts: runtime of movie:301")
+	}
+}
+
+func TestShortsDetailConcurrencyBound(t *testing.T) {
+	var discover strings.Builder
+	discover.WriteString(`{"results":[`)
+	for i := 1; i <= 20; i++ {
+		if i > 1 {
+			discover.WriteString(",")
+		}
+		fmt.Fprintf(&discover, `{"id":%d,"title":"t%d","release_date":"2020-01-01"}`, i, i)
+	}
+	discover.WriteString(`]}`)
+
+	var inFlight, maxInFlight int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/discover/movie" {
+			w.Write([]byte(discover.String()))
+			return
+		}
+		cur := atomic.AddInt32(&inFlight, 1)
+		for {
+			max := atomic.LoadInt32(&maxInFlight)
+			if cur <= max || atomic.CompareAndSwapInt32(&maxInFlight, max, cur) {
+				break
+			}
+		}
+		time.Sleep(20 * time.Millisecond)
+		atomic.AddInt32(&inFlight, -1)
+		w.Write([]byte(`{"runtime": 10}`))
+	}))
+	t.Cleanup(srv.Close)
+
+	c := New("tok", WithBaseURL(srv.URL))
+	got, err := c.Shorts(context.Background(), ShortsOptions{})
+	if err != nil {
+		t.Fatalf("Shorts: %v", err)
+	}
+	if len(got) != 20 {
+		t.Fatalf("len = %d, want 20", len(got))
+	}
+	for i, r := range got {
+		if want := (ID{Movie, int64(i + 1)}); r.ID != want {
+			t.Errorf("got[%d].ID = %v, want %v", i, r.ID, want)
+		}
+	}
+	if m := atomic.LoadInt32(&maxInFlight); m > 5 {
+		t.Errorf("max in flight = %d, want <= 5", m)
+	}
 }
 
 func TestShortsUnknownGenre(t *testing.T) {

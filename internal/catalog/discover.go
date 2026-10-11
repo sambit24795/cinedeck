@@ -2,11 +2,18 @@ package catalog
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
+)
+
+const (
+	shortMaxMinutes   = 40 // TMDB has no "short" type; this is the Academy definition
+	maxDetailRequests = 5  // detail lookups in flight at once
 )
 
 // Genres returns the genre ids for t, keyed by lower-case genre name.
@@ -166,5 +173,49 @@ func (c *Client) Shorts(ctx context.Context, o ShortsOptions) ([]Result, error) 
 	for _, it := range resp.Results {
 		results = append(results, it.result(Movie))
 	}
-	return results, nil
+	return c.onlyShorts(ctx, results)
+}
+
+// onlyShorts keeps the results whose runtime is 1 to 40 minutes, in the original order.
+func (c *Client) onlyShorts(ctx context.Context, in []Result) ([]Result, error) {
+	if len(in) == 0 {
+		return []Result{}, nil
+	}
+
+	runtimes := make([]int, len(in))
+	errs := make([]error, len(in))
+	sem := make(chan struct{}, maxDetailRequests)
+	var wg sync.WaitGroup
+	for i := range in {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			d, err := c.Details(ctx, in[i].ID)
+			if err != nil {
+				errs[i] = err
+				return
+			}
+			runtimes[i] = d.Runtime
+		}(i)
+	}
+	wg.Wait()
+
+	out := make([]Result, 0, len(in))
+	for i, r := range in {
+		if err := errs[i]; err != nil {
+			// A 404 means the title no longer exists, so it cannot be a
+			// short we can verify; drop it.
+			var apiErr *APIError
+			if errors.As(err, &apiErr) && apiErr.Status == 404 {
+				continue
+			}
+			return nil, fmt.Errorf("shorts: runtime of %s: %w", r.ID.String(), err)
+		}
+		if runtimes[i] >= 1 && runtimes[i] <= shortMaxMinutes {
+			out = append(out, r)
+		}
+	}
+	return out, nil
 }
