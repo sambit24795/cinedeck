@@ -55,4 +55,16 @@ var migrations = []string{
         value      TEXT    NOT NULL,
         updated_at INTEGER NOT NULL
     );`,
+	`CREATE TABLE torrents (
+        info_hash TEXT    PRIMARY KEY,
+        tmdb_id   TEXT    NOT NULL DEFAULT '',
+        title     TEXT    NOT NULL,
+        provider  TEXT    NOT NULL,
+        size      INTEGER NOT NULL DEFAULT 0,
+        seeders   INTEGER NOT NULL DEFAULT 0,
+        leechers  INTEGER NOT NULL DEFAULT 0,
+        magnet    TEXT    NOT NULL DEFAULT '',
+        saved_at  INTEGER NOT NULL
+    );
+    CREATE INDEX torrents_tmdb_id ON torrents (tmdb_id);`,
 }

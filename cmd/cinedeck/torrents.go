@@ -71,7 +71,73 @@ func newTorrentsCmd() *cobra.Command {
 	}
 	cmd.AddCommand(newTorrentsSearchCmd())
 	cmd.AddCommand(newTorrentsInfoCmd())
+	cmd.AddCommand(newTorrentsSaveCmd())
 	cmd.AddCommand(newTorrentsProvidersCmd())
+	return cmd
+}
+
+func newTorrentsSaveCmd() *cobra.Command {
+	var forTitle string
+	var first bool
+	cmd := &cobra.Command{
+		Use:   "save <hash|magnet>",
+		Short: "Save a release to your library",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			_, cfg, err := newCatalog(cmd)
+			if err != nil {
+				return err
+			}
+			arg := args[0]
+			var hash, title string
+			if strings.HasPrefix(arg, "magnet:") {
+				hash, title, err = indexer.ParseMagnet(arg)
+				if err != nil {
+					return err
+				}
+			} else if isInfoHash(arg) {
+				hash = strings.ToLower(arg)
+			} else {
+				return fmt.Errorf("not a magnet or info hash: %q", arg)
+			}
+
+			// Look up the release across providers so we store the real metadata.
+			reg := newTorrentsRegistryFunc()
+			i := newTorrentIndexer(cfg)
+			rel := indexer.Release{InfoHash: hash, Title: title}
+			if res, err := i.LookupHash(cmd.Context(), hash, reg.Enabled(enabledProviderNames(cfg))); err == nil && len(res.Releases) > 0 {
+				rel = res.Releases[0]
+			} else {
+				rel.Magnet = arg
+			}
+
+			tmdbID := ""
+			if forTitle != "" {
+				id, err := resolveRef(cmd, forTitle, first)
+				if err != nil {
+					return err
+				}
+				tmdbID = id.String()
+			}
+
+			lib, err := openLibrary()
+			if err != nil {
+				return err
+			}
+			defer lib.Close()
+			if err := lib.SaveRelease(cmd.Context(), rel, tmdbID); err != nil {
+				return err
+			}
+
+			if jsonOut, _ := cmd.Flags().GetBool("json"); jsonOut {
+				return printJSON(cmd.OutOrStdout(), rel)
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "Saved %s (%s)\n", rel.Title, rel.InfoHash)
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&forTitle, "for", "", "associate the release with a title (id or title)")
+	cmd.Flags().BoolVar(&first, "first", false, "pick the first search result for --for")
 	return cmd
 }
 

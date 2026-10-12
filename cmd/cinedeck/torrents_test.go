@@ -283,3 +283,115 @@ func writeTestTorrent(t *testing.T, path, name string, length int64) {
 		t.Fatalf("WriteFile: %v", err)
 	}
 }
+
+func TestTorrentsSave(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("CINEDECK_DATA_DIR", dir)
+	hash := "aabbccddeeff00112233445566778899aabbccdd"
+
+	useFakeProviders(t, &fakeTorrentProvider{
+		name: "fake",
+		releases: []indexer.Release{
+			{Provider: "fake", Title: "Inception", InfoHash: hash, Seeders: 42, Size: 1000},
+		},
+	})
+
+	out, _ := runTorrentsCmd(t, false, "save", hash, "--for", "movie:27205")
+	if !strings.Contains(out, "Saved") || !strings.Contains(out, hash) {
+		t.Errorf("output = %q, want a Saved line with the hash", out)
+	}
+
+	lib, err := openLibrary()
+	if err != nil {
+		t.Fatalf("openLibrary: %v", err)
+	}
+	defer lib.Close()
+	got, err := lib.ReleasesFor(context.Background(), "movie:27205")
+	if err != nil {
+		t.Fatalf("ReleasesFor: %v", err)
+	}
+	if len(got) != 1 || got[0].InfoHash != hash {
+		t.Fatalf("stored releases = %+v, want one entry %s", got, hash)
+	}
+}
+
+func TestTorrentsSaveWithFor(t *testing.T) {
+	t.Setenv("CINEDECK_DATA_DIR", t.TempDir())
+	hash := "aabbccddeeff00112233445566778899aabbccdd"
+
+	useFakeProviders(t, &fakeTorrentProvider{
+		name: "fake",
+		releases: []indexer.Release{
+			{Provider: "fake", Title: "Inception", InfoHash: hash, Seeders: 1},
+		},
+	})
+
+	_, _ = runTorrentsCmd(t, false, "save", hash, "--for", "movie:27205")
+
+	lib, err := openLibrary()
+	if err != nil {
+		t.Fatalf("openLibrary: %v", err)
+	}
+	defer lib.Close()
+	got, err := lib.ReleasesFor(context.Background(), "movie:27205")
+	if err != nil {
+		t.Fatalf("ReleasesFor: %v", err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("len = %d, want 1", len(got))
+	}
+}
+
+func TestTorrentsSaveRejectsBadArg(t *testing.T) {
+	t.Setenv("CINEDECK_DATA_DIR", t.TempDir())
+	useFakeProviders(t, &fakeTorrentProvider{name: "fake"})
+	_, _ = runTorrentsCmd(t, true, "save", "notahash")
+}
+
+func TestInfoShowsSavedTorrents(t *testing.T) {
+	dataDir := t.TempDir()
+	t.Setenv("CINEDECK_DATA_DIR", dataDir)
+
+	hash := "aabbccddeeff00112233445566778899aabbccdd"
+	lib, err := openLibrary()
+	if err != nil {
+		t.Fatalf("openLibrary: %v", err)
+	}
+	if err := lib.SaveRelease(context.Background(), indexer.Release{
+		Provider: "fake", Title: "Inception", InfoHash: hash, Seeders: 7,
+	}, "movie:27205"); err != nil {
+		t.Fatalf("SaveRelease: %v", err)
+	}
+	lib.Close()
+
+	srv := fixtureServer(t, map[string]string{
+		"/movie/27205":  "movie_27205.json",
+		"/search/multi": "search_multi.json",
+	})
+	setCatalogEnv(t, srv)
+
+	out, err := runRootCmd(t, "info", "movie:27205", "--config", filepath.Join(t.TempDir(), "none.toml"))
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if !strings.Contains(out, "Available torrents") || !strings.Contains(out, hash) {
+		t.Errorf("output missing the saved torrent section:\n%s", out)
+	}
+}
+
+func TestInfoNoSavedTorrentsSection(t *testing.T) {
+	t.Setenv("CINEDECK_DATA_DIR", t.TempDir())
+	srv := fixtureServer(t, map[string]string{
+		"/movie/27205":  "movie_27205.json",
+		"/search/multi": "search_multi.json",
+	})
+	setCatalogEnv(t, srv)
+
+	out, err := runRootCmd(t, "info", "movie:27205", "--config", filepath.Join(t.TempDir(), "none.toml"))
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if strings.Contains(out, "Available torrents") {
+		t.Errorf("unexpected torrent section:\n%s", out)
+	}
+}

@@ -29,8 +29,8 @@ func TestOpenCreatesSchema(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SchemaVersion: %v", err)
 	}
-	if v != 1 {
-		t.Errorf("SchemaVersion = %d, want 1", v)
+	if v != 2 {
+		t.Errorf("SchemaVersion = %d, want 2", v)
 	}
 
 	rows, err := l.db.Query("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
@@ -49,7 +49,7 @@ func TestOpenCreatesSchema(t *testing.T) {
 	if err := rows.Err(); err != nil {
 		t.Fatalf("rows.Err: %v", err)
 	}
-	want := []string{"cache_meta", "items", "likes", "ratings", "watched", "watchlist"}
+	want := []string{"cache_meta", "items", "likes", "ratings", "torrents", "watched", "watchlist"}
 	if !reflect.DeepEqual(names, want) {
 		t.Errorf("tables = %v, want %v", names, want)
 	}
@@ -124,8 +124,8 @@ func TestOpenReopen(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SchemaVersion: %v", err)
 	}
-	if v != 1 {
-		t.Errorf("SchemaVersion = %d, want 1", v)
+	if v != 2 {
+		t.Errorf("SchemaVersion = %d, want 2", v)
 	}
 	got, ok, err := reopened.GetMeta(ctx, "k")
 	if err != nil {

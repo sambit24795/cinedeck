@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/sambit24795/cinedeck/internal/catalog"
+	"github.com/sambit24795/cinedeck/internal/indexer"
 	"github.com/spf13/cobra"
 )
 
@@ -27,15 +28,43 @@ func newInfoCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+
+			// Saved torrents are best-effort: a missing database just means none.
+			saved := []indexer.Release{}
+			if lib, err := openLibraryIfExists(); err == nil && lib != nil {
+				saved, _ = lib.ReleasesFor(cmd.Context(), id.String())
+				lib.Close()
+			}
+
 			if jsonOut, _ := cmd.Flags().GetBool("json"); jsonOut {
-				return printJSON(cmd.OutOrStdout(), d)
+				return printJSON(cmd.OutOrStdout(), detailsOutput{Details: d, SavedTorrents: saved})
 			}
 			printDetails(cmd, d)
+			printSavedTorrents(cmd, saved)
 			return nil
 		},
 	}
 	cmd.Flags().BoolVar(&first, "first", false, "pick the first search result")
 	return cmd
+}
+
+// detailsOutput is the --json shape for info: the details plus saved torrents.
+type detailsOutput struct {
+	*catalog.Details
+	SavedTorrents []indexer.Release `json:"saved_torrents"`
+}
+
+// printSavedTorrents writes an "Available torrents" section when there are saved releases.
+func printSavedTorrents(cmd *cobra.Command, saved []indexer.Release) {
+	if len(saved) == 0 {
+		return
+	}
+	out := cmd.OutOrStdout()
+	fmt.Fprintln(out)
+	fmt.Fprintln(out, "Available torrents")
+	for _, r := range saved {
+		fmt.Fprintf(out, "  %s  seeders=%s  %s  %s\n", r.Provider, formatCount(r.Seeders), formatSize(r.Size), r.InfoHash)
+	}
 }
 
 // printDetails writes d as one field per line, then the overview.
