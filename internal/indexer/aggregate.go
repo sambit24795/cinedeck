@@ -83,6 +83,18 @@ func (i *Indexer) fanOut(ctx context.Context, q Query, providers []Provider, byH
 	}
 
 	all = DedupeReleases(all)
+
+	// Apply the query filters defensively so a provider that ignores them
+	// cannot leak results past the caller's request.
+	filtered := all[:0]
+	for _, r := range all {
+		if q.MinSeeders > 0 && r.Seeders < q.MinSeeders {
+			continue
+		}
+		filtered = append(filtered, r)
+	}
+	all = filtered
+
 	sortBy := q.Sort
 	if sortBy == "" {
 		sortBy = "seeders"
