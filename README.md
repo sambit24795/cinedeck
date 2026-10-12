@@ -1,8 +1,11 @@
 # cinedeck
 
 cinedeck is a command-line tool for discovering movies and TV shows. It searches
-TMDB for titles, shows details like ratings, genres and cast, and helps you find
-where to watch them from legal sources.
+TMDB for titles, shows details like ratings, genres and cast, finds where to
+watch them legally, and indexes torrent files to see seeder/leecher counts.
+
+**Note:** Torrent indexing is for personal use only. Users are responsible for
+legal compliance with local laws and tracker terms of service.
 
 ## Install
 
@@ -27,7 +30,7 @@ The token is stored in your config file (`cinedeck config path` prints where). Y
 
 ## Quickstart
 
-Create a config file (you will be asked for the token from the section above, a region and a download directory):
+Create a config file (you will be asked for the token from the section above, a region and optionally tracker settings):
 
 ```
 cinedeck config init
@@ -51,6 +54,13 @@ Find short films (40 minutes or less) and see what is trending:
 ```
 cinedeck shorts --genre animation --year 2008
 cinedeck trending --type tv
+```
+
+Index a torrent to see metadata (title, seeder/leecher counts, file list):
+
+```
+cinedeck index "magnet:?xt=urn:btih:..."
+cinedeck index "movie.torrent"
 ```
 
 Browse by genre, language, country and year, or use the presets. TMDB has no "K-drama" or "anime" type, so the presets are filters: `kdrama` lists Korean-language TV dramas, and `anime` lists Japanese-language animation (TV by default, `--type movie` for films).
@@ -109,6 +119,20 @@ Your library is one SQLite file, `library.db`, in:
 
 Set `CINEDECK_DATA_DIR` to use another directory. The file holds the titles you liked, rated, watched or added to your watchlist, with their TMDB title, year, genres, keywords, top cast and director. It never leaves your machine. Delete the file to start over.
 
+## Torrent indexing (private use only)
+
+Torrent indexing requires access to tracker APIs. Configure via environment variables:
+
+- `CINEDECK_TRACKER_URL` — Base URL for public tracker API (optional)
+- `CINEDECK_DHT_ENABLED=true` — Enable DHT search (optional)
+- `CINEDECK_PRIVATE_KEY=...` — For private trackers requiring authentication
+
+The indexer parses magnet links or `.torrent` files and queries configured trackers
+for metadata: title, year, seeder count, leecher count, total size, and file list.
+No downloads occur during indexing.
+
 ## Attribution
 
 This product uses the TMDB API but is not endorsed or certified by TMDB. Where-to-watch data is provided by JustWatch.
+
+**Torrent indexing:** This tool indexes torrent metadata only; it does not download any content.

@@ -11,6 +11,12 @@ gofmt -l . && go vet ./... && go test ./...
 
 ## Scope
 
-cinedeck only supports legal sources. Keep contributions to legal sources only;
-do not add piracy indexers or any other source that encourages copyright
-infringement.
+cinedeck includes:
+- TMDB API integration (legal, free)
+- JustWatch where-to-watch data (legal attribution required)
+- Internet Archive search (public domain/legal sources only)
+- Torrent indexing (metadata extraction only; private use by user)
+
+Do not add: built-in scrapers for piracy indexers or any source that encourages
+copyright infringement. Torrent indexing is configured per-user and remains
+their responsibility for legal compliance.
