@@ -1,7 +1,9 @@
 package indexer
 
 import (
+	"context"
 	"testing"
+	"time"
 )
 
 func TestNewIndexer(t *testing.T) {
@@ -11,48 +13,26 @@ func TestNewIndexer(t *testing.T) {
 	if i == nil {
 		t.Fatal("expected non-nil Indexer")
 	}
-	if i.trackerURL != "" {
-		t.Errorf("expected empty tracker URL, got %q", i.trackerURL)
-	}
-	if i.dhtEnabled {
-		t.Error("expected DHT disabled by default")
-	}
-	if i.privateKey != "" {
-		t.Error("expected empty private key by default")
+	if i.timeout != 10*time.Second {
+		t.Errorf("expected default timeout 10s, got %v", i.timeout)
 	}
 }
 
-func TestWithTrackerURL(t *testing.T) {
+func TestWithTimeout(t *testing.T) {
 	t.Parallel()
 
-	i := NewIndexer(
-		WithTrackerURL("http://tracker.example.com"),
-	)
-	if i.trackerURL != "http://tracker.example.com" {
-		t.Errorf("expected tracker URL, got %q", i.trackerURL)
+	i := NewIndexer(WithTimeout(3 * time.Second))
+	if i.timeout != 3*time.Second {
+		t.Errorf("expected 3s timeout, got %v", i.timeout)
 	}
 }
 
-func TestWithDHT(t *testing.T) {
+func TestWithTimeoutIgnoresNonPositive(t *testing.T) {
 	t.Parallel()
 
-	i1 := NewIndexer(WithDHT(true))
-	if !i1.dhtEnabled {
-		t.Error("expected DHT enabled")
-	}
-
-	i2 := NewIndexer(WithDHT(false))
-	if i2.dhtEnabled {
-		t.Error("expected DHT disabled")
-	}
-}
-
-func TestWithPrivateKey(t *testing.T) {
-	t.Parallel()
-
-	i := NewIndexer(WithPrivateKey("secret-key-12345"))
-	if i.privateKey != "secret-key-12345" {
-		t.Errorf("expected private key, got %q", i.privateKey)
+	i := NewIndexer(WithTimeout(0))
+	if i.timeout != 10*time.Second {
+		t.Errorf("expected default timeout kept, got %v", i.timeout)
 	}
 }
 
@@ -114,7 +94,7 @@ func TestIndexer_ParseMagnet(t *testing.T) {
 
 	i := NewIndexer()
 	magnet := "magnet:?xt=urn:btih:1234567890abcdef&dn=Sample+Movie"
-	infoHash, title, err := i.ParseMagnet(nil, magnet)
+	infoHash, title, err := i.ParseMagnet(context.Background(), magnet)
 	if err != nil {
 		t.Fatalf("ParseMagnet() error = %v", err)
 	}
