@@ -8,6 +8,7 @@ import (
 // Indexer holds the shared configuration for torrent parsing and provider search.
 type Indexer struct {
 	timeout time.Duration
+	cache   *cache
 }
 
 // Option configures an Indexer.

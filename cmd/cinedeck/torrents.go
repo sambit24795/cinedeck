@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -41,6 +42,28 @@ func enabledProviderNames(cfg config.Config) []string {
 	return out
 }
 
+// torrentCacheDir returns the on-disk cache directory for torrent searches.
+func torrentCacheDir() string {
+	if dir := os.Getenv("CINEDECK_CACHE_DIR"); dir != "" {
+		return filepath.Join(dir, "torrents")
+	}
+	base, err := os.UserCacheDir()
+	if err != nil {
+		return ""
+	}
+	return filepath.Join(base, "cinedeck", "torrents")
+}
+
+// newTorrentIndexer builds an Indexer with the config timeout and cache.
+func newTorrentIndexer(cfg config.Config) *indexer.Indexer {
+	opts := []indexer.Option{indexer.WithTimeout(parseTimeout(cfg.IndexerTimeout))}
+	if dir := torrentCacheDir(); dir != "" {
+		opts = append(opts, indexer.WithCache(dir, time.Hour))
+	}
+	return indexer.NewIndexer(opts...)
+}
+
+// newTorrentsCmd is defined below.
 func newTorrentsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "torrents",
@@ -94,7 +117,7 @@ func newTorrentsInfoCmd() *cobra.Command {
 			}
 			reg := newTorrentsRegistryFunc()
 			selected := reg.Enabled(enabledProviderNames(cfg))
-			i := indexer.NewIndexer(indexer.WithTimeout(parseTimeout(cfg.IndexerTimeout)))
+			i := newTorrentIndexer(cfg)
 
 			arg := args[0]
 			var out infoOutput
@@ -286,7 +309,7 @@ func newTorrentsSearchCmd() *cobra.Command {
 				return err
 			}
 
-			i := indexer.NewIndexer(indexer.WithTimeout(parseTimeout(cfg.IndexerTimeout)))
+			i := newTorrentIndexer(cfg)
 			res, err := i.Search(cmd.Context(), q, selected)
 			if err != nil {
 				return err

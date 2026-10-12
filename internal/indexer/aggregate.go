@@ -66,6 +66,22 @@ func (i *Indexer) fanOut(ctx context.Context, q Query, providers []Provider, byH
 				pq.InfoHash = q.InfoHash
 			}
 
+			// Hash lookups bypass the cache; text searches use it when enabled.
+			if !byHash && i.cache != nil {
+				key := cacheKey(pq, p.Name())
+				if rel, ok := i.cache.get(key); ok {
+					results[idx] = outcome{provider: p.Name(), releases: rel}
+					return
+				}
+				rel, err := p.Search(pctx, pq)
+				if err == nil {
+					// Best-effort: a cache write failure must not fail the search.
+					_ = i.cache.put(key, rel)
+				}
+				results[idx] = outcome{provider: p.Name(), releases: rel, err: err}
+				return
+			}
+
 			rel, err := p.Search(pctx, pq)
 			results[idx] = outcome{provider: p.Name(), releases: rel, err: err}
 		}(idx, p)
