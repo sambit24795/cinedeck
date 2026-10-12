@@ -2,9 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/sambit24795/cinedeck/internal/catalog"
@@ -38,6 +40,8 @@ func newServeCmd() *cobra.Command {
 			mux.HandleFunc("/", s.handleIndex)
 			mux.HandleFunc("/api/search", s.handleSearch)
 			mux.HandleFunc("/api/detail", s.handleDetail)
+			mux.HandleFunc("/api/watch", s.handleWatch)
+			mux.HandleFunc("/api/torrents/title", s.handleTorrentsForTitle)
 			mux.HandleFunc("/api/recommend/from", s.handleRecommendFrom)
 			mux.HandleFunc("/api/recommend/personal", s.handleRecommendPersonal)
 			mux.HandleFunc("/api/like", s.handleLike)
@@ -132,6 +136,73 @@ func (s *server) handleDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, d)
+}
+
+// handleWatch serves GET /api/watch?id=<id>&region=<cc>. It returns the
+// where-to-watch groups for the configured region; no providers is not an error.
+func (s *server) handleWatch(w http.ResponseWriter, r *http.Request) {
+	id, err := s.resolveServeID(r)
+	if err != nil {
+		writeJSON(w, map[string]any{"error": err.Error()})
+		return
+	}
+	cfg, err := configForServe()
+	if err != nil {
+		writeJSON(w, map[string]any{"error": err.Error()})
+		return
+	}
+	region := strings.ToUpper(strings.TrimSpace(r.URL.Query().Get("region")))
+	if region == "" {
+		region = strings.ToUpper(strings.TrimSpace(cfg.Region))
+	}
+
+	c, err := s.getCatalog()
+	if err != nil {
+		writeJSON(w, map[string]any{"error": err.Error()})
+		return
+	}
+	wtw, err := c.WhereToWatch(r.Context(), id, region)
+	if errors.Is(err, catalog.ErrNoProviders) {
+		writeJSON(w, map[string]any{"region": region, "available": false})
+		return
+	}
+	if err != nil {
+		writeJSON(w, map[string]any{"error": err.Error()})
+		return
+	}
+	writeJSON(w, map[string]any{"region": region, "available": true, "result": wtw})
+}
+
+// handleTorrentsForTitle serves GET /api/torrents/title?id=<id>&q=<title>&type=.
+// It searches the enabled providers for the title and returns merged releases.
+func (s *server) handleTorrentsForTitle(w http.ResponseWriter, r *http.Request) {
+	q := strings.TrimSpace(r.URL.Query().Get("q"))
+	if q == "" {
+		writeJSON(w, map[string]any{"error": "missing q"})
+		return
+	}
+	cfg, err := configForServe()
+	if err != nil {
+		writeJSON(w, map[string]any{"error": err.Error()})
+		return
+	}
+	names := enabledProviderNames(cfg)
+	if len(names) == 0 {
+		names = []string{"apibay", "yts", "eztv", "nyaa", "archive"}
+	}
+
+	mediaType := indexer.Any
+	if t := r.URL.Query().Get("type"); t == "movie" || t == "tv" {
+		mediaType = indexer.MediaType(t)
+	}
+
+	i := serveIndexer(cfg)
+	res, err := i.Search(r.Context(), indexer.Query{Text: q, Type: mediaType, Limit: 10}, s.registry.Enabled(names))
+	if err != nil {
+		writeJSON(w, map[string]any{"error": err.Error()})
+		return
+	}
+	writeJSON(w, res)
 }
 
 func (s *server) handleSearch(w http.ResponseWriter, r *http.Request) {
@@ -478,6 +549,7 @@ const indexHTML = `<!doctype html>
   .actions { display:flex; gap:8px; margin:14px 0; }
   .badge { font-size:11px; padding:2px 7px; border-radius:999px; border:1px solid var(--line); color:var(--muted); }
   .reason { color:var(--muted); font-size:13px; }
+  h3 { margin:20px 0 6px; font-size:15px; }
   @media (max-width:640px){ .detail { grid-template-columns:1fr; } .detail img.poster { width:140px; } }
 </style>
 </head>
@@ -603,19 +675,30 @@ function renderErrors(errs) {
 }
 
 function openDetail(id) {
+  rememberList();
   out.innerHTML = '<div class="empty">Loading…</div>';
   getJSON("/api/detail?id=" + encodeURIComponent(id)).then(function(d){
     if (d && d.error) { out.innerHTML = '<div class="err">' + esc(d.error) + '</div>'; return; }
     out.innerHTML = renderDetail(d);
+    wireDetailActions(d);
+    loadWatch(d.id);
+    loadTitleTorrents(d);
   });
 }
 
+// back button restores the last list view.
+var lastList = { html: '', tab: 'search' };
+function rememberList() { lastList = { html: out.innerHTML, tab: tab }; }
+
 function renderDetail(d) {
-  var h = '<div class="detail">';
+  var h = '<div style="margin-bottom:10px"><button class="ghost" id="btn-back">← Back</button></div>';
+  h += '<div class="detail">';
   h += '<div><img class="poster" src="' + esc(d.poster || "") + '" alt="" onerror="this.style.visibility=\'hidden\'"></div>';
   h += '<div>';
   h += '<h2>' + esc(d.title) + (d.year ? " (" + d.year + ")" : "") + '</h2>';
-  h += '<div class="muted">Rating ' + fmtRating(d.rating) + (d.runtime ? " · " + d.runtime + " min" : "") + (d.seasons ? " · " + d.seasons + " seasons" : "") + (d.status ? " · " + esc(d.status) : "") + '</div>';
+  if (d.tagline) h += '<div class="muted" style="font-style:italic">' + esc(d.tagline) + '</div>';
+  h += '<div class="muted">Rating ' + fmtRating(d.rating) + (d.votes ? " (" + d.votes + " votes)" : "") + (d.runtime ? " · " + d.runtime + " min" : "") + (d.seasons ? " · " + d.seasons + " seasons" : "") + (d.episodes ? " · " + d.episodes + " episodes" : "") + (d.status ? " · " + esc(d.status) : "") + (d.released ? " · " + esc(d.released) : "") + '</div>';
+  if (d.networks && d.networks.length) h += '<div class="muted">' + esc(d.networks.join(", ")) + '</div>';
   if (d.genres && d.genres.length) {
     h += '<div class="chips">';
     d.genres.forEach(function(g){ h += '<span class="chip">' + esc(g) + '</span>'; });
@@ -624,23 +707,79 @@ function renderDetail(d) {
   var dir = (d.directors && d.directors.length) ? d.directors.join(", ") : (d.creators && d.creators.length ? d.creators.join(", ") : "");
   if (dir) h += '<div class="muted">' + esc(dir) + '</div>';
   h += '<div class="actions">';
-  h += '<button id="btn-like" class="ghost">Like</button>';
-  h += '<button id="btn-watch" class="ghost">Watchlist</button>';
+  h += '<button id="btn-like" class="ghost">☆ Like</button>';
+  h += '<button id="btn-watch" class="ghost">＋ Watchlist</button>';
+  h += '<button class="ghost" id="btn-recs">Similar titles</button>';
   h += '<a class="badge" href="https://www.themoviedb.org/' + (d.id || "").split(":")[0] + '/' + (d.id || "").split(":")[1] + '" target="_blank">TMDB</a>';
   h += '</div>';
   if (d.overview) h += '<p>' + esc(d.overview) + '</p>';
   if (d.cast_details && d.cast_details.length) {
     h += '<div class="cast">';
     d.cast_details.forEach(function(c){
-      h += '<div class="person"><img src="' + esc(c.photo || "") + '" onerror="this.style.visibility=\'hidden\'"><div>' + esc(c.name) + '</div>' + (c.character ? '<div>' + esc(c.character) + '</div>' : '') + '</div>';
+      h += '<div class="person"><img src="' + esc(c.photo || "") + '" onerror="this.style.visibility=\'hidden\'"><div>' + esc(c.name) + '</div>' + (c.character ? '<div class="muted">' + esc(c.character) + '</div>' : '') + '</div>';
     });
     h += '</div>';
   }
   h += '</div></div>';
+  h += '<div id="watch-section"></div>';
+  h += '<div id="torrent-section"></div>';
+  return h;
+}
 
+// wireDetailActions attaches the detail view's buttons.
+function wireDetailActions(d) {
+  document.getElementById("btn-back").onclick = function(){ out.innerHTML = lastList.html; setTab(lastList.tab); };
   document.getElementById("btn-like").onclick = function(){ action("/api/like", d.id, this); };
   document.getElementById("btn-watch").onclick = function(){ action("/api/watchlist", d.id, this); };
-  return h;
+  document.getElementById("btn-recs").onclick = function(){ setTab("recommend"); document.getElementById("rec-from").value = d.title; recommendFrom(); };
+}
+
+function loadWatch(id) {
+  var el = document.getElementById("watch-section");
+  if (!el) return;
+  getJSON("/api/watch?id=" + encodeURIComponent(id)).then(function(res){
+    if (!el) return;
+    if (res && res.error) { el.innerHTML = ""; return; }
+    if (!res.available) { el.innerHTML = '<h3>Where to watch</h3><div class="muted">No providers found for region ' + esc(res.region) + '.</div>'; return; }
+    var w = res.result;
+    var groups = [["Stream", w.stream], ["Free", w.free], ["With ads", w.ads], ["Rent", w.rent], ["Buy", w.buy]];
+    var h = '<h3>Where to watch <span class="muted">(' + esc(res.region) + ')</span></h3>';
+    var any = false;
+    groups.forEach(function(g){
+      if (g[1] && g[1].length) {
+        any = true;
+        h += '<div style="margin:6px 0"><span class="chip">' + g[0] + '</span> ';
+        h += g[1].map(function(p){ return '<span class="muted">' + esc(p.name) + '</span>'; }).join(' · ');
+        h += '</div>';
+      }
+    });
+    if (!any) h += '<div class="muted">No providers found for region ' + esc(res.region) + '.</div>';
+    if (w.link) h += '<div class="muted"><a href="' + esc(w.link) + '" target="_blank">TMDB watch page</a></div>';
+    el.innerHTML = h;
+  });
+}
+
+function loadTitleTorrents(d) {
+  var el = document.getElementById("torrent-section");
+  if (!el) return;
+  var type = (d.id || "").split(":")[0];
+  var title = d.title + (d.year ? " " + d.year : "");
+  getJSON("/api/torrents/title?q=" + encodeURIComponent(title) + "&type=" + encodeURIComponent(type)).then(function(res){
+    if (!el) return;
+    if (!res || res.error) { el.innerHTML = '<h3>Torrents</h3><div class="muted">' + esc((res && res.error) || "unavailable") + '</div>'; return; }
+    var rows = res.releases || [];
+    var h = '<h3>Torrents <span class="muted">(' + rows.length + ')</span></h3>';
+    if (!rows.length) h += '<div class="muted">No releases found.</div>';
+    else {
+      h += "<table><tr><th>Provider</th><th>Title</th><th>Seeders</th><th>Leechers</th><th>Size</th><th></th></tr>";
+      rows.forEach(function(r){
+        var link = r.magnet ? '<a href="' + esc(r.magnet) + '">magnet</a>' : (r.info_url ? '<a href="' + esc(r.info_url) + '" target="_blank">open</a>' : '');
+        h += "<tr><td>" + esc(r.provider) + "</td><td>" + esc(r.title) + "</td><td>" + (r.seeders || "-") + "</td><td>" + (r.leechers || "-") + "</td><td>" + fmtSize(r.size) + "</td><td>" + link + "</td></tr>";
+      });
+      h += "</table>";
+    }
+    el.innerHTML = h;
+  });
 }
 
 function action(ep, id, el, set) {

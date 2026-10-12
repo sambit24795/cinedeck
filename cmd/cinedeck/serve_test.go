@@ -342,3 +342,77 @@ func TestServeIndexerNonNil(t *testing.T) {
 		t.Fatal("serveIndexer returned nil")
 	}
 }
+
+func TestServeWatch(t *testing.T) {
+	srv := fixtureServer(t, map[string]string{
+		"/movie/27205/watch/providers": "watch_movie_27205.json",
+	})
+	setCatalogEnv(t, srv)
+
+	s := &server{registry: defaultTorrentsRegistry()}
+	req := httptest.NewRequest(http.MethodGet, "/api/watch?id=movie:27205&region=IN", nil)
+	rec := httptest.NewRecorder()
+	s.handleWatch(rec, req)
+
+	var got struct {
+		Region    string `json:"region"`
+		Available bool   `json:"available"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("Unmarshal: %v\n%s", err, rec.Body.String())
+	}
+	if got.Region != "IN" || !got.Available {
+		t.Errorf("got %+v, want region IN and available", got)
+	}
+}
+
+func TestServeWatchNoProviders(t *testing.T) {
+	srv := fixtureServer(t, map[string]string{
+		"/movie/27205/watch/providers": "watch_movie_27205.json",
+	})
+	setCatalogEnv(t, srv)
+
+	s := &server{registry: defaultTorrentsRegistry()}
+	req := httptest.NewRequest(http.MethodGet, "/api/watch?id=movie:27205&region=GB", nil)
+	rec := httptest.NewRecorder()
+	s.handleWatch(rec, req)
+
+	var got struct {
+		Region    string `json:"region"`
+		Available bool   `json:"available"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("Unmarshal: %v\n%s", err, rec.Body.String())
+	}
+	if got.Available {
+		t.Errorf("expected unavailable for GB, got %+v", got)
+	}
+}
+
+func TestServeTorrentsForTitleMissingQ(t *testing.T) {
+	s := &server{registry: defaultTorrentsRegistry()}
+	req := httptest.NewRequest(http.MethodGet, "/api/torrents/title", nil)
+	rec := httptest.NewRecorder()
+	s.handleTorrentsForTitle(rec, req)
+
+	var got map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("Unmarshal: %v", err)
+	}
+	if got["error"] == nil {
+		t.Errorf("expected an error for missing q, got %v", got)
+	}
+}
+
+func TestServeIndexHasWatchAndTorrentSections(t *testing.T) {
+	s := &server{registry: defaultTorrentsRegistry()}
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+	s.handleIndex(rec, req)
+	body := rec.Body.String()
+	for _, want := range []string{"/api/watch", "/api/torrents/title", "Where to watch", "btn-back"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("index missing %q", want)
+		}
+	}
+}
