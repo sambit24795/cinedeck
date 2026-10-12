@@ -1,0 +1,10 @@
+{
+  "torrents_count": 3,
+  "limit": 100,
+  "page": 1,
+  "torrents": [
+    {"id":1,"hash":"aa11bb22cc33dd44ee55ff66aa77bb88cc99dd00","filename":"Breaking.Bad.S01E01.1080p.WEB.x264","title":"Breaking Bad S01E01 1080p WEB x264 [eztv]","magnet":"magnet:?xt=urn:btih:aa11bb22cc33dd44ee55ff66aa77bb88cc99dd00","size_bytes":"2147483648","seeds":500,"peers":60,"season":1,"episode":1,"date_released_unix":1700000000},
+    {"id":2,"hash":"bb22cc33dd44ee55ff66aa77bb88cc99dd00ee11","filename":"Breaking.Bad.S01E02.720p.WEB.x264","title":"Breaking Bad S01E02 720p WEB x264 [eztv]","magnet":"magnet:?xt=urn:btih:bb22cc33dd44ee55ff66aa77bb88cc99dd00ee11","size_bytes":"1073741824","seeds":120,"peers":20,"season":1,"episode":2,"date_released_unix":1700000100},
+    {"id":3,"hash":"cc33dd44ee55ff66aa77bb88cc99dd00ee11ff22","filename":"Better.Call.Saul.S01E01.1080p","title":"Better Call Saul S01E01 1080p [eztv]","magnet":"magnet:?xt=urn:btih:cc33dd44ee55ff66aa77bb88cc99dd00ee11ff22","size_bytes":"1610612736","seeds":300,"peers":30,"season":1,"episode":1,"date_released_unix":1700000200}
+  ]
+}
