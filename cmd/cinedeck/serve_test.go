@@ -416,3 +416,16 @@ func TestServeIndexHasWatchAndTorrentSections(t *testing.T) {
 		}
 	}
 }
+
+func TestServeIndexHasMagnetControls(t *testing.T) {
+	s := &server{registry: defaultTorrentsRegistry()}
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+	s.handleIndex(rec, req)
+	body := rec.Body.String()
+	for _, want := range []string{"magnetCell", "copyMagnet", "rememberMagnets"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("index missing %q", want)
+		}
+	}
+}

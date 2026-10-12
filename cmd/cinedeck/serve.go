@@ -526,6 +526,7 @@ const indexHTML = `<!doctype html>
   button { padding:10px 16px; border:1px solid var(--line); background:var(--panel); color:var(--text); border-radius:9px; cursor:pointer; }
   button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
   button.ghost { background:transparent; }
+  button.tiny { padding:2px 8px; font-size:12px; border-radius:6px; }
   button:hover { border-color:#39424f; }
   .tabs { display:flex; gap:8px; margin:16px 0; flex-wrap:wrap; }
   .tabs button.active { background:var(--accent); border-color:var(--accent); color:#fff; }
@@ -634,7 +635,7 @@ async function run() {
     var data = await getJSON(ep + "?q=" + encodeURIComponent(query));
     if (data && data.error) { out.innerHTML = '<div class="err">' + esc(data.error) + '</div>'; return; }
     if (tab === "search") out.innerHTML = renderTitles(data);
-    else if (tab === "torrents") out.innerHTML = renderTorrents(data);
+    else if (tab === "torrents") { rememberMagnets(data.releases || []); out.innerHTML = renderTorrents(data); }
     else out.innerHTML = renderArchive(data);
   } catch (e) { out.innerHTML = '<div class="err">' + esc(e) + '</div>'; }
 }
@@ -660,11 +661,33 @@ function renderTorrents(d) {
   var rows = (d && d.releases) || [];
   var errs = (d && d.errors) || [];
   if (!rows.length) return '<div class="empty">No results.</div>' + renderErrors(errs);
-  var h = "<table><tr><th>Provider</th><th>Title</th><th>Seeders</th><th>Leechers</th><th>Size</th><th>Hash</th></tr>";
+  var h = "<table><tr><th>Provider</th><th>Title</th><th>Seeders</th><th>Leechers</th><th>Size</th><th>Magnet</th></tr>";
   rows.forEach(function(r){
-    h += "<tr><td>" + esc(r.provider) + "</td><td>" + esc(r.title) + "</td><td>" + (r.seeders || "-") + "</td><td>" + (r.leechers || "-") + "</td><td>" + fmtSize(r.size) + "</td><td class='muted'>" + esc(r.info_hash) + "</td></tr>";
+    h += "<tr><td>" + esc(r.provider) + "</td><td>" + esc(r.title) + "</td><td>" + (r.seeders || "-") + "</td><td>" + (r.leechers || "-") + "</td><td>" + fmtSize(r.size) + "</td><td>" + magnetCell(r) + "</td></tr>";
   });
   return h + "</table>" + renderErrors(errs);
+}
+
+// magnetCell renders the magnet link plus a copy button for one release.
+function magnetCell(r) {
+  if (r.magnet) {
+    return '<a href="' + esc(r.magnet) + '" title="Open in your torrent client">🧲 magnet</a> ' +
+      '<button class="ghost tiny" onclick="copyMagnet(\'' + esc(r.info_hash) + '\', this)" title="Copy magnet link">copy</button>';
+  }
+  if (r.info_url) return '<a href="' + esc(r.info_url) + '" target="_blank">open</a>';
+  return '<span class="muted">-</span>';
+}
+
+// magnetByHash holds the magnet links of the last rendered torrent list, keyed
+// by info hash, so the copy button can look one up without escaping issues.
+var magnetByHash = {};
+function rememberMagnets(rows) { magnetByHash = {}; (rows || []).forEach(function(r){ if (r.magnet) magnetByHash[r.info_hash] = r.magnet; }); }
+function copyMagnet(hash, el) {
+  var m = magnetByHash[hash];
+  if (!m) return;
+  var done = function(){ if (el) { var o = el.textContent; el.textContent = "copied"; setTimeout(function(){ el.textContent = o; }, 1200); } };
+  if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(m).then(done, function(){ prompt("Magnet link", m); }); }
+  else { prompt("Magnet link", m); }
 }
 
 function renderErrors(errs) {
@@ -768,13 +791,13 @@ function loadTitleTorrents(d) {
     if (!el) return;
     if (!res || res.error) { el.innerHTML = '<h3>Torrents</h3><div class="muted">' + esc((res && res.error) || "unavailable") + '</div>'; return; }
     var rows = res.releases || [];
+    rememberMagnets(rows);
     var h = '<h3>Torrents <span class="muted">(' + rows.length + ')</span></h3>';
     if (!rows.length) h += '<div class="muted">No releases found.</div>';
     else {
-      h += "<table><tr><th>Provider</th><th>Title</th><th>Seeders</th><th>Leechers</th><th>Size</th><th></th></tr>";
+      h += "<table><tr><th>Provider</th><th>Title</th><th>Seeders</th><th>Leechers</th><th>Size</th><th>Magnet</th></tr>";
       rows.forEach(function(r){
-        var link = r.magnet ? '<a href="' + esc(r.magnet) + '">magnet</a>' : (r.info_url ? '<a href="' + esc(r.info_url) + '" target="_blank">open</a>' : '');
-        h += "<tr><td>" + esc(r.provider) + "</td><td>" + esc(r.title) + "</td><td>" + (r.seeders || "-") + "</td><td>" + (r.leechers || "-") + "</td><td>" + fmtSize(r.size) + "</td><td>" + link + "</td></tr>";
+        h += "<tr><td>" + esc(r.provider) + "</td><td>" + esc(r.title) + "</td><td>" + (r.seeders || "-") + "</td><td>" + (r.leechers || "-") + "</td><td>" + fmtSize(r.size) + "</td><td>" + magnetCell(r) + "</td></tr>";
       });
       h += "</table>";
     }
