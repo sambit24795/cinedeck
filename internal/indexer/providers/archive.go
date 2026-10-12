@@ -32,11 +32,25 @@ func (a *Archive) Name() string { return "archive" }
 type archiveResponse struct {
 	Response struct {
 		Docs []struct {
-			Identifier string `json:"identifier"`
-			Title      string `json:"title"`
-			Year       string `json:"year"`
+			Identifier string      `json:"identifier"`
+			Title      string      `json:"title"`
+			Year       archiveYear `json:"year"`
 		} `json:"docs"`
 	} `json:"response"`
+}
+
+// archiveYear accepts the Internet Archive's year as either a string or a
+// number; both appear in the wild.
+type archiveYear string
+
+func (y *archiveYear) UnmarshalJSON(data []byte) error {
+	if len(data) >= 2 && data[0] == '"' && data[len(data)-1] == '"' {
+		*y = archiveYear(strings.Trim(string(data), `"`))
+		return nil
+	}
+	// A bare number (possibly fractional) becomes its string form.
+	*y = archiveYear(string(data))
+	return nil
 }
 
 func (a *Archive) Search(ctx context.Context, q indexer.Query) ([]indexer.Release, error) {
@@ -76,7 +90,7 @@ func (a *Archive) Search(ctx context.Context, q indexer.Query) ([]indexer.Releas
 		out = append(out, indexer.Release{
 			Provider: a.Name(),
 			Title:    d.Title,
-			Year:     indexer.ParseYearFromTitle(d.Year),
+			Year:     indexer.ParseYearFromTitle(string(d.Year)),
 			Category: "public domain",
 			InfoURL:  base + "/details/" + d.Identifier,
 		})

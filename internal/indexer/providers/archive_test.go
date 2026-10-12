@@ -2,6 +2,8 @@ package providers
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -36,5 +38,25 @@ func TestArchiveSearch(t *testing.T) {
 	}
 	if got[0].Year != 1922 {
 		t.Errorf("Year = %d, want 1922", got[0].Year)
+	}
+}
+
+func TestArchiveYearNumber(t *testing.T) {
+	t.Parallel()
+
+	body := `{"response":{"docs":[{"identifier":"x","title":"X","year":1984}]}}`
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(body))
+	}))
+	t.Cleanup(srv.Close)
+
+	a := &Archive{BaseURL: srv.URL, HTTP: srv.Client()}
+	got, err := a.Search(context.Background(), indexer.Query{Text: "x"})
+	if err != nil {
+		t.Fatalf("Search() error = %v", err)
+	}
+	if len(got) != 1 || got[0].Year != 1984 {
+		t.Fatalf("got %+v, want one entry with Year 1984", got)
 	}
 }
