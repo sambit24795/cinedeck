@@ -17,11 +17,13 @@ const BIN_NAME = process.platform === "win32" ? "cinedeck.exe" : "cinedeck";
 function platformTag() {
   const os = process.platform; // linux, darwin, win32, android
   const arch = process.arch; // x64, arm64, ia32, ...
+  // GoReleaser names the Windows target "windows", Node calls it "win32".
+  const goOS = os === "win32" ? "windows" : os;
   const goArch = arch === "x64" ? "amd64" : arch === "arm64" ? "arm64" : null;
   if (!goArch) {
     throw new Error(`cinedeck: unsupported architecture ${arch}`);
   }
-  return { os, goArch };
+  return { os: goOS, goArch };
 }
 
 function assetName(version, os, goArch) {
