@@ -37,5 +37,6 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newRecommendCmd())
 	cmd.AddCommand(newTorrentsCmd())
 	cmd.AddCommand(newFreeCmd())
+	cmd.AddCommand(newServeCmd())
 	return cmd
 }
