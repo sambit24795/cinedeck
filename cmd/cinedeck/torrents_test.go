@@ -4,10 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/anacrolix/torrent/bencode"
+	"github.com/anacrolix/torrent/metainfo"
 	"github.com/sambit24795/cinedeck/internal/indexer"
 )
 
@@ -174,5 +177,109 @@ func TestFormatSize(t *testing.T) {
 		if got := formatSize(tt.in); got != tt.want {
 			t.Errorf("formatSize(%d) = %q, want %q", tt.in, got, tt.want)
 		}
+	}
+}
+
+func TestTorrentsInfoHash(t *testing.T) {
+	hash := "aabbccddeeff00112233445566778899aabbccdd"
+	useFakeProviders(t, &fakeTorrentProvider{
+		name: "fake",
+		releases: []indexer.Release{
+			{Provider: "fake", Title: "Inception", InfoHash: hash, Seeders: 42, Leechers: 7},
+		},
+	})
+	out, _ := runTorrentsCmd(t, false, "info", hash)
+	for _, want := range []string{hash, "Inception", "fake", "42"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output missing %q:\n%s", want, out)
+		}
+	}
+}
+
+func TestTorrentsInfoTorrentFile(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "sample.torrent")
+	writeTestTorrent(t, path, "Sample Movie 1999", 2048)
+
+	useFakeProviders(t, &fakeTorrentProvider{name: "fake"})
+	out, _ := runTorrentsCmd(t, false, "info", path)
+	for _, want := range []string{"Sample Movie 1999", "2.0 kB", "Files:"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output missing %q:\n%s", want, out)
+		}
+	}
+}
+
+func TestTorrentsInfoBadArg(t *testing.T) {
+	useFakeProviders(t, &fakeTorrentProvider{name: "fake"})
+	_, _ = runTorrentsCmd(t, true, "info", "notahash")
+}
+
+func TestTorrentsInfoJSON(t *testing.T) {
+	hash := "aabbccddeeff00112233445566778899aabbccdd"
+	useFakeProviders(t, &fakeTorrentProvider{
+		name:     "fake",
+		releases: []indexer.Release{{Provider: "fake", Title: "X", InfoHash: hash, Seeders: 1}},
+	})
+	out, _ := runTorrentsCmd(t, false, "info", hash, "--json")
+	var got infoOutput
+	if err := json.Unmarshal([]byte(out), &got); err != nil {
+		t.Fatalf("stdout is not valid JSON: %v\n%s", err, out)
+	}
+	if got.InfoHash != hash {
+		t.Errorf("InfoHash = %q, want %q", got.InfoHash, hash)
+	}
+	if len(got.Providers) != 1 || got.Providers[0].Provider != "fake" {
+		t.Errorf("Providers = %+v", got.Providers)
+	}
+}
+
+func TestTorrentsProviders(t *testing.T) {
+	useFakeProviders(t,
+		&fakeTorrentProvider{name: "alpha"},
+		&fakeTorrentProvider{name: "beta"},
+	)
+	t.Setenv("CINEDECK_INDEXER_PROVIDERS", "beta")
+	t.Setenv("CINEDECK_TMDB_TOKEN", "tok")
+	t.Setenv("CINEDECK_TMDB_URL", "http://127.0.0.1:1")
+	t.Setenv("CINEDECK_CACHE_DIR", t.TempDir())
+
+	cmd := newRootCmd()
+	var out strings.Builder
+	cmd.SetOut(&out)
+	cmd.SetIn(strings.NewReader(""))
+	cmd.SetArgs([]string{"torrents", "providers", "--config", filepath.Join(t.TempDir(), "none.toml")})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	got := out.String()
+	if !strings.Contains(got, "alpha") || !strings.Contains(got, "beta") {
+		t.Errorf("providers output missing a name:\n%s", got)
+	}
+	if !strings.Contains(got, "true") {
+		t.Errorf("expected an enabled provider:\n%s", got)
+	}
+}
+
+// writeTestTorrent writes a minimal single-file .torrent to path.
+func writeTestTorrent(t *testing.T, path, name string, length int64) {
+	t.Helper()
+	info := metainfo.Info{
+		Name:        name,
+		Length:      length,
+		PieceLength: 16384,
+		Pieces:      make([]byte, 20),
+	}
+	infoBytes, err := bencode.Marshal(info)
+	if err != nil {
+		t.Fatalf("bencode.Marshal(info): %v", err)
+	}
+	mi := metainfo.MetaInfo{InfoBytes: infoBytes}
+	data, err := bencode.Marshal(mi)
+	if err != nil {
+		t.Fatalf("bencode.Marshal(metainfo): %v", err)
+	}
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
 	}
 }
