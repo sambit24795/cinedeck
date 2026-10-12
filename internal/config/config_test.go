@@ -11,7 +11,7 @@ import (
 // TestMain makes the tests hermetic: the caller may have the CINEDECK_*
 // overrides exported, and Load would apply them to every test.
 func TestMain(m *testing.M) {
-	for _, key := range []string{"CINEDECK_TMDB_TOKEN", "CINEDECK_TMDB_URL", "CINEDECK_REGION", "CINEDECK_DOWNLOAD_DIR"} {
+	for _, key := range []string{"CINEDECK_TMDB_TOKEN", "CINEDECK_TMDB_URL", "CINEDECK_REGION", "CINEDECK_DOWNLOAD_DIR", "CINEDECK_INDEXER_PROVIDERS", "CINEDECK_INDEXER_TIMEOUT", "CINEDECK_PROXY_URL"} {
 		os.Unsetenv(key)
 	}
 	os.Exit(m.Run())
@@ -107,5 +107,59 @@ func TestSaveFilePermission(t *testing.T) {
 	}
 	if got := info.Mode().Perm(); got != 0o600 {
 		t.Errorf("file mode = %o, want %o", got, 0o600)
+	}
+}
+
+func TestDefaultIndexerSettings(t *testing.T) {
+	d := Default()
+	if d.IndexerProviders != "" {
+		t.Errorf("IndexerProviders = %q, want empty", d.IndexerProviders)
+	}
+	if d.IndexerTimeout != "10s" {
+		t.Errorf("IndexerTimeout = %q, want 10s", d.IndexerTimeout)
+	}
+}
+
+func TestIndexerSettingsRoundTrip(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.toml")
+	want := Default()
+	want.IndexerProviders = "apibay,yts"
+	want.IndexerTimeout = "5s"
+	if err := Save(path, want); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+	got, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if got.IndexerProviders != "apibay,yts" {
+		t.Errorf("IndexerProviders = %q, want apibay,yts", got.IndexerProviders)
+	}
+	if got.IndexerTimeout != "5s" {
+		t.Errorf("IndexerTimeout = %q, want 5s", got.IndexerTimeout)
+	}
+}
+
+func TestIndexerEnvOverrides(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.toml")
+	if err := os.WriteFile(path, []byte("indexer_providers = \"apibay\"\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	t.Setenv("CINEDECK_INDEXER_PROVIDERS", "yts")
+	t.Setenv("CINEDECK_INDEXER_TIMEOUT", "3s")
+	t.Setenv("CINEDECK_PROXY_URL", "http://proxy:8080")
+
+	got, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if got.IndexerProviders != "yts" {
+		t.Errorf("IndexerProviders = %q, want yts", got.IndexerProviders)
+	}
+	if got.IndexerTimeout != "3s" {
+		t.Errorf("IndexerTimeout = %q, want 3s", got.IndexerTimeout)
+	}
+	if got.ProxyURL != "http://proxy:8080" {
+		t.Errorf("ProxyURL = %q", got.ProxyURL)
 	}
 }

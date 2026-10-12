@@ -115,6 +115,15 @@ func newConfigInitCmd() *cobra.Command {
 				cfg.DownloadDir = v
 			}
 
+			if cfg.IndexerProviders == "" {
+				fmt.Fprint(out, "Indexer providers (comma list, empty to skip): ")
+			} else {
+				fmt.Fprintf(out, "Indexer providers [%s]: ", cfg.IndexerProviders)
+			}
+			if v, err := readAnswer(in); err == nil && v != "" {
+				cfg.IndexerProviders = v
+			}
+
 			if err := config.Save(path, cfg); err != nil {
 				return err
 			}

@@ -11,19 +11,23 @@ import (
 
 // Config holds the user-configurable settings for cinedeck.
 type Config struct {
-	TMDBToken   string `toml:"tmdb_token"`
-	TMDBURL     string `toml:"tmdb_url"`
-	Region      string `toml:"region"`
-	DownloadDir string `toml:"download_dir"`
+	TMDBToken        string `toml:"tmdb_token"`
+	TMDBURL          string `toml:"tmdb_url"`
+	Region           string `toml:"region"`
+	DownloadDir      string `toml:"download_dir"`
+	IndexerProviders string `toml:"indexer_providers"` // comma-separated names; empty means none
+	IndexerTimeout   string `toml:"indexer_timeout"`   // duration string such as "10s"
+	ProxyURL         string `toml:"proxy_url"`
 }
 
 // Default returns a Config with the built-in defaults.
 func Default() Config {
 	home, _ := os.UserHomeDir()
 	return Config{
-		TMDBURL:     "https://api.themoviedb.org/3",
-		Region:      "IN",
-		DownloadDir: filepath.Join(home, "Downloads", "cinedeck"),
+		TMDBURL:        "https://api.themoviedb.org/3",
+		Region:         "IN",
+		DownloadDir:    filepath.Join(home, "Downloads", "cinedeck"),
+		IndexerTimeout: "10s",
 	}
 }
 
@@ -63,6 +67,15 @@ func Load(path string) (Config, error) {
 	}
 	if v := os.Getenv("CINEDECK_DOWNLOAD_DIR"); v != "" {
 		c.DownloadDir = v
+	}
+	if v := os.Getenv("CINEDECK_INDEXER_PROVIDERS"); v != "" {
+		c.IndexerProviders = v
+	}
+	if v := os.Getenv("CINEDECK_INDEXER_TIMEOUT"); v != "" {
+		c.IndexerTimeout = v
+	}
+	if v := os.Getenv("CINEDECK_PROXY_URL"); v != "" {
+		c.ProxyURL = v
 	}
 
 	return c, nil

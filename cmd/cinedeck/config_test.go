@@ -408,3 +408,73 @@ func TestConfigInitNoRequestForShortKey(t *testing.T) {
 		t.Errorf("requests = %d, want 0", *count)
 	}
 }
+
+func TestConfigInitSavesIndexerProviders(t *testing.T) {
+	authServer(t)
+	path := filepath.Join(t.TempDir(), "c.toml")
+
+	cmd := newRootCmd()
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetIn(strings.NewReader("abc\nUS\n\napibay,yts\n"))
+	cmd.SetArgs([]string{"config", "init", "--config", path})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.IndexerProviders != "apibay,yts" {
+		t.Errorf("IndexerProviders = %q, want apibay,yts", cfg.IndexerProviders)
+	}
+}
+
+func TestConfigInitEmptyIndexerProviders(t *testing.T) {
+	authServer(t)
+	path := filepath.Join(t.TempDir(), "c.toml")
+
+	cmd := newRootCmd()
+	cmd.SetOut(&bytes.Buffer{})
+	cmd.SetIn(strings.NewReader("abc\nUS\n\n\n"))
+	cmd.SetArgs([]string{"config", "init", "--config", path})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.IndexerProviders != "" {
+		t.Errorf("IndexerProviders = %q, want empty", cfg.IndexerProviders)
+	}
+}
+
+func TestConfigInitDoesNotEchoStoredTokenInIndexerPrompt(t *testing.T) {
+	authServer(t)
+	path := filepath.Join(t.TempDir(), "c.toml")
+
+	if err := config.Save(path, config.Config{
+		TMDBToken:        "secret-token",
+		TMDBURL:          "https://api.themoviedb.org/3",
+		Region:           "IN",
+		IndexerProviders: "apibay",
+	}); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+
+	cmd := newRootCmd()
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetErr(&out)
+	cmd.SetIn(strings.NewReader("\n\n\n\n"))
+	cmd.SetArgs([]string{"config", "init", "--config", path})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if strings.Contains(out.String(), "secret-token") {
+		t.Error("output echoed the stored token")
+	}
+}
