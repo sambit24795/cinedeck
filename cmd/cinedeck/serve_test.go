@@ -429,3 +429,85 @@ func TestServeIndexHasMagnetControls(t *testing.T) {
 		}
 	}
 }
+
+func TestServeGenres(t *testing.T) {
+	srv := fixtureServer(t, map[string]string{
+		"/genre/movie/list": "genre_movie_list.json",
+		"/genre/tv/list":    "genre_tv_list.json",
+	})
+	setCatalogEnv(t, srv)
+
+	s := &server{registry: defaultTorrentsRegistry()}
+	req := httptest.NewRequest(http.MethodGet, "/api/genres?type=movie", nil)
+	rec := httptest.NewRecorder()
+	s.handleGenres(rec, req)
+
+	var got []string
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("Unmarshal: %v\n%s", err, rec.Body.String())
+	}
+	if len(got) == 0 {
+		t.Fatalf("no genres returned: %s", rec.Body.String())
+	}
+	// The fixture's genre names are lower-cased and sorted.
+	for i := 1; i < len(got); i++ {
+		if got[i-1] > got[i] {
+			t.Errorf("genres not sorted: %v", got)
+			break
+		}
+	}
+}
+
+func TestServeBrowseTrending(t *testing.T) {
+	srv := fixtureServer(t, map[string]string{
+		"/trending/movie/week": "trending_movie.json",
+	})
+	setCatalogEnv(t, srv)
+
+	s := &server{registry: defaultTorrentsRegistry()}
+	req := httptest.NewRequest(http.MethodGet, "/api/browse?preset=trending&type=movie", nil)
+	rec := httptest.NewRecorder()
+	s.handleBrowse(rec, req)
+
+	var got []catalog.Result
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("Unmarshal: %v\n%s", err, rec.Body.String())
+	}
+	if len(got) == 0 {
+		t.Errorf("no trending results: %s", rec.Body.String())
+	}
+}
+
+func TestServeBrowseDiscoverGenre(t *testing.T) {
+	srv := fixtureServer(t, map[string]string{
+		"/genre/movie/list": "genre_movie_list.json",
+		"/discover/movie":   "discover_shorts.json",
+	})
+	setCatalogEnv(t, srv)
+
+	s := &server{registry: defaultTorrentsRegistry()}
+	req := httptest.NewRequest(http.MethodGet, "/api/browse?preset=popular&type=movie&genre=Animation", nil)
+	rec := httptest.NewRecorder()
+	s.handleBrowse(rec, req)
+
+	var got []catalog.Result
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("Unmarshal: %v\n%s", err, rec.Body.String())
+	}
+	if got == nil {
+		t.Error("expected a non-null result slice")
+	}
+}
+
+func TestServeIndexHasBrowseTab(t *testing.T) {
+	s := &server{registry: defaultTorrentsRegistry()}
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+	s.handleIndex(rec, req)
+	body := rec.Body.String()
+	for _, want := range []string{`data-tab="browse"`, "/api/browse", "/api/genres", "K-drama", "Anime"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("index missing %q", want)
+		}
+	}
+}

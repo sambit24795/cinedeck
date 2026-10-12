@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -41,6 +42,8 @@ func newServeCmd() *cobra.Command {
 			mux.HandleFunc("/api/search", s.handleSearch)
 			mux.HandleFunc("/api/detail", s.handleDetail)
 			mux.HandleFunc("/api/watch", s.handleWatch)
+			mux.HandleFunc("/api/browse", s.handleBrowse)
+			mux.HandleFunc("/api/genres", s.handleGenres)
 			mux.HandleFunc("/api/torrents/title", s.handleTorrentsForTitle)
 			mux.HandleFunc("/api/recommend/from", s.handleRecommendFrom)
 			mux.HandleFunc("/api/recommend/personal", s.handleRecommendPersonal)
@@ -173,8 +176,97 @@ func (s *server) handleWatch(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]any{"region": region, "available": true, "result": wtw})
 }
 
+// handleGenres serves GET /api/genres?type=movie|tv and returns genre names.
+func (s *server) handleGenres(w http.ResponseWriter, r *http.Request) {
+	c, err := s.getCatalog()
+	if err != nil {
+		writeJSON(w, map[string]any{"error": err.Error()})
+		return
+	}
+	t := catalog.Movie
+	if r.URL.Query().Get("type") == "tv" {
+		t = catalog.TV
+	}
+	genres, err := c.Genres(r.Context(), t)
+	if err != nil {
+		writeJSON(w, map[string]any{"error": err.Error()})
+		return
+	}
+	names := make([]string, 0, len(genres))
+	for name := range genres {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	writeJSON(w, names)
+}
+
+// handleBrowse serves GET /api/browse with a named preset and optional filters.
+//
+//	preset=trending|popular|top | kdrama | anime | shorts
+//	type=movie|tv  genre=  lang=  country=  year=
+func (s *server) handleBrowse(w http.ResponseWriter, r *http.Request) {
+	c, err := s.getCatalog()
+	if err != nil {
+		writeJSON(w, map[string]any{"error": err.Error()})
+		return
+	}
+
+	mediaType := catalog.Movie
+	if r.URL.Query().Get("type") == "tv" {
+		mediaType = catalog.TV
+	}
+	genre := strings.TrimSpace(r.URL.Query().Get("genre"))
+	lang := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("lang")))
+	country := strings.ToUpper(strings.TrimSpace(r.URL.Query().Get("country")))
+	year := parseIntDefault(r.URL.Query().Get("year"), 0)
+	preset := strings.TrimSpace(r.URL.Query().Get("preset"))
+
+	var results []catalog.Result
+	switch preset {
+	case "trending":
+		results, err = c.Trending(r.Context(), mediaType)
+	case "shorts":
+		results, err = c.Shorts(r.Context(), catalog.ShortsOptions{Genre: genre, Year: year})
+	case "kdrama":
+		results, err = c.Discover(r.Context(), catalog.DiscoverOptions{
+			Type: catalog.TV, Genres: appendGenre(genre, "drama"), Language: "ko", MinVotes: 50, Year: year,
+		})
+	case "anime":
+		results, err = c.Discover(r.Context(), catalog.DiscoverOptions{
+			Type: mediaType, Genres: appendGenre(genre, "animation"), Language: "ja", MinVotes: 50, Year: year,
+		})
+	default: // "popular" / "" / any filter combination
+		results, err = c.Discover(r.Context(), catalog.DiscoverOptions{
+			Type: mediaType, Genres: oneGenre(genre), Language: lang, Country: country, Year: year,
+		})
+	}
+	if err != nil {
+		writeJSON(w, map[string]any{"error": err.Error()})
+		return
+	}
+	if results == nil {
+		results = []catalog.Result{}
+	}
+	writeJSON(w, results)
+}
+
+// oneGenre returns a one-element genre slice, or nil when empty.
+func oneGenre(g string) []string {
+	if g == "" {
+		return nil
+	}
+	return []string{g}
+}
+
+// appendGenre adds g to base when g is non-empty.
+func appendGenre(g, base string) []string {
+	if g == "" {
+		return []string{base}
+	}
+	return []string{base, g}
+}
+
 // handleTorrentsForTitle serves GET /api/torrents/title?id=<id>&q=<title>&type=.
-// It searches the enabled providers for the title and returns merged releases.
 func (s *server) handleTorrentsForTitle(w http.ResponseWriter, r *http.Request) {
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
 	if q == "" {
@@ -544,6 +636,8 @@ const indexHTML = `<!doctype html>
   .detail h2 { margin:0 0 4px; font-size:24px; }
   .chips { display:flex; gap:6px; flex-wrap:wrap; margin:8px 0; }
   .chip { font-size:12px; padding:3px 9px; border:1px solid var(--line); border-radius:999px; color:var(--muted); }
+  .clickchip { cursor:pointer; }
+  .clickchip:hover { border-color:var(--accent); color:var(--text); }
   .cast { display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; }
   .cast .person { width:82px; text-align:center; font-size:11px; color:var(--muted); }
   .cast img { width:66px; height:88px; object-fit:cover; border-radius:7px; background:var(--panel); }
@@ -567,6 +661,7 @@ const indexHTML = `<!doctype html>
   </div>
   <div class="tabs">
     <button data-tab="search" class="active">Movies &amp; TV</button>
+    <button data-tab="browse">Browse</button>
     <button data-tab="recommend">Recommend</button>
     <button data-tab="torrents">Torrents</button>
     <button data-tab="free">Internet Archive</button>
@@ -586,7 +681,8 @@ var goBtn = document.getElementById("go");
 function setTab(t) {
   tab = t;
   tabs.forEach(function(b){ b.classList.toggle("active", b.dataset.tab === t); });
-  if (t === "recommend") { showRecommendControls(); }
+  if (t === "browse") { showBrowseControls(); }
+  else if (t === "recommend") { showRecommendControls(); }
   else if (t === "library") { run(); }
   else { controls.innerHTML = ""; if (q.value.trim()) run(); }
 }
@@ -599,6 +695,59 @@ function esc(s) { return (s == null ? "" : String(s)).replace(/[&<>"]/g, functio
 function fmtSize(n) { if (!n) return "-"; var u=["B","kB","MB","GB","TB"], i=0; while (n >= 1000 && i < u.length-1){ n/=1000; i++; } return n.toFixed(1)+" "+u[i]; }
 function fmtYear(y) { return y ? y : "-"; }
 function fmtRating(r) { return r ? Number(r).toFixed(1) : "-"; }
+
+function showBrowseControls() {
+  controls.innerHTML =
+    '<div class="chips" style="margin-top:10px">' +
+      '<span class="chip clickchip" onclick="browse(\'trending\')">🔥 Trending</span>' +
+      '<span class="chip clickchip" onclick="browse(\'popular\')">Popular</span>' +
+      '<span class="chip clickchip" onclick="browse(\'kdrama\')">K-drama</span>' +
+      '<span class="chip clickchip" onclick="browse(\'anime\')">Anime</span>' +
+      '<span class="chip clickchip" onclick="browse(\'shorts\')">Shorts</span>' +
+    '</div>' +
+    '<div class="row" style="margin-top:8px;flex-wrap:wrap">' +
+      '<select id="br-type" style="max-width:120px"><option value="movie">movies</option><option value="tv">tv</option></select>' +
+      '<select id="br-genre" style="max-width:200px"><option value="">any genre</option></select>' +
+      '<input id="br-lang" placeholder="lang (ko)" style="max-width:110px">' +
+      '<input id="br-country" placeholder="country (KR)" style="max-width:130px">' +
+      '<input id="br-year" placeholder="year" type="number" style="max-width:100px">' +
+      '<button class="primary" id="br-go">Go</button>' +
+    '</div>';
+  document.getElementById("br-go").onclick = function(){ browse("popular"); };
+  document.getElementById("br-type").onchange = loadGenres;
+  loadGenres();
+}
+
+// loadGenres fills the genre dropdown for the selected type.
+function loadGenres() {
+  var type = document.getElementById("br-type").value;
+  getJSON("/api/genres?type=" + type).then(function(names){
+    var sel = document.getElementById("br-genre");
+    if (!sel) return;
+    var cur = sel.value;
+    sel.innerHTML = '<option value="">any genre</option>';
+    (names || []).forEach(function(n){ sel.innerHTML += '<option value="' + esc(n) + '">' + esc(n) + '</option>'; });
+    sel.value = cur;
+  });
+}
+
+// browse runs a browse preset with the current filters.
+function browse(preset) {
+  var type = document.getElementById("br-type").value;
+  var genre = document.getElementById("br-genre").value;
+  var lang = document.getElementById("br-lang").value.trim();
+  var country = document.getElementById("br-country").value.trim();
+  var year = document.getElementById("br-year").value.trim();
+  var url = "/api/browse?preset=" + encodeURIComponent(preset) + "&type=" + encodeURIComponent(type) +
+    "&genre=" + encodeURIComponent(genre) + "&lang=" + encodeURIComponent(lang) +
+    "&country=" + encodeURIComponent(country) + "&year=" + encodeURIComponent(year);
+  out.innerHTML = '<div class="empty">Loading…</div>';
+  getJSON(url).then(function(data){
+    if (data && data.error) { out.innerHTML = '<div class="err">' + esc(data.error) + '</div>'; return; }
+    var label = preset === "popular" ? "Popular" : preset.charAt(0).toUpperCase() + preset.slice(1);
+    out.innerHTML = '<div class="muted" style="margin-top:8px">' + esc(label) + (genre ? " · " + esc(genre) : "") + '</div>' + renderTitles(data);
+  });
+}
 
 function showRecommendControls() {
   controls.innerHTML =
@@ -627,6 +776,7 @@ async function run() {
     return;
   }
   if (tab === "recommend") { return; }
+  if (tab === "browse") { return; }
   var query = q.value.trim();
   if (!query) { return; }
   out.innerHTML = '<div class="empty">Searching…</div>';
