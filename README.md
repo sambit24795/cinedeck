@@ -2,10 +2,11 @@
 
 cinedeck is a command-line tool for discovering movies and TV shows. It searches
 TMDB for titles, shows details like ratings, genres and cast, finds where to
-watch them legally, and indexes torrent files to see seeder/leecher counts.
+watch them legally, and searches public torrent indexers for releases with
+seeder/leecher counts.
 
-**Note:** Torrent indexing is for personal use only. Users are responsible for
-legal compliance with local laws and tracker terms of service.
+**Note:** Torrent search and indexing are for personal use only. Users are
+responsible for legal compliance with local laws and indexer terms of service.
 
 ## Install
 
@@ -109,6 +110,43 @@ Results are grouped as Stream, Free, With ads, Rent and Buy, followed by the TMD
 
 Add `--json` to any of these for machine-readable output (with `where`, the JustWatch notice is also printed to stderr).
 
+## Torrent search (private use only)
+
+Search public torrent indexers by title and see seeder and leecher counts. Providers are off until you enable them in your config:
+
+```
+# config.toml
+indexer_providers = "apibay,yts,eztv,nyaa,archive"
+indexer_timeout   = "10s"
+```
+
+Or with environment variables: `CINEDECK_INDEXER_PROVIDERS`, `CINEDECK_INDEXER_TIMEOUT` and `CINEDECK_PROXY_URL`.
+
+```
+cinedeck torrents search "inception" --type movie --min-seeders 10
+cinedeck torrents search "breaking bad" --type tv --provider eztv --sort seeders
+cinedeck torrents search "jujutsu kaisen" --json
+```
+
+Results are merged from every enabled provider, de-duplicated by info hash (the entry with the most seeders wins) and sorted. A provider that is down is reported on stderr and does not fail the command. Use `torrents providers` to list providers and which are enabled.
+
+Work with a single torrent:
+
+```
+cinedeck torrents info "magnet:?xt=urn:btih:..."
+cinedeck torrents info <40-char-info-hash>
+cinedeck torrents info ./movie.torrent
+```
+
+Save a release to your library, optionally associating it with a title. Saved releases then appear in `info` under `Available torrents`:
+
+```
+cinedeck torrents save <info-hash> --for movie:27205
+cinedeck info movie:27205
+```
+
+Providers: `apibay` (The Pirate Bay), `yts` (movies), `eztv` (TV), `nyaa` (anime), `archive` (Internet Archive, public-domain films with no seeder counts). See `docs/torrents.md` for details and `docs/privacy.md` for what is stored and what is called.
+
 ## Where your data is stored
 
 Your library is one SQLite file, `library.db`, in:
@@ -117,22 +155,24 @@ Your library is one SQLite file, `library.db`, in:
 - macOS: `~/Library/Application Support/cinedeck/`
 - Windows: `%LOCALAPPDATA%\cinedeck\`
 
-Set `CINEDECK_DATA_DIR` to use another directory. The file holds the titles you liked, rated, watched or added to your watchlist, with their TMDB title, year, genres, keywords, top cast and director. It never leaves your machine. Delete the file to start over.
+Set `CINEDECK_DATA_DIR` to use another directory. The file holds the titles you liked, rated, watched or added to your watchlist, with their TMDB title, year, genres, keywords, top cast and director, plus any torrent releases you saved. It never leaves your machine. Delete the file to start over.
+
+Torrent search results are cached for one hour under your user cache directory (`CINEDECK_CACHE_DIR` overrides it).
+
+## Toolchain
+
+cinedeck builds with **Go 1.24** or newer. It is a single static binary; no cgo is required.
 
 ## Torrent indexing (private use only)
 
-Torrent indexing requires access to tracker APIs. Configure via environment variables:
-
-- `CINEDECK_TRACKER_URL` — Base URL for public tracker API (optional)
-- `CINEDECK_DHT_ENABLED=true` — Enable DHT search (optional)
-- `CINEDECK_PRIVATE_KEY=...` — For private trackers requiring authentication
-
-The indexer parses magnet links or `.torrent` files and queries configured trackers
-for metadata: title, year, seeder count, leecher count, total size, and file list.
-No downloads occur during indexing.
+Torrent search and indexing are for personal use only. cinedeck queries the public
+indexers you enable and parses magnet links or `.torrent` files; it does not host,
+seed or download content. Enable providers with `indexer_providers` in your config
+(see the Torrent search section above). No providers are enabled by default because
+indexer legality varies by country.
 
 ## Attribution
 
 This product uses the TMDB API but is not endorsed or certified by TMDB. Where-to-watch data is provided by JustWatch.
 
-**Torrent indexing:** This tool indexes torrent metadata only; it does not download any content.
+**Torrent search:** cinedeck indexes torrent metadata only; it does not download any content.
