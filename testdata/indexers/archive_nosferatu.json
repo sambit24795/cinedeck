@@ -1,0 +1,11 @@
+{
+  "responseHeader": {"status": 0, "QTime": 5},
+  "response": {
+    "numFound": 2,
+    "start": 0,
+    "docs": [
+      {"identifier": "nosferatu1922", "title": "Nosferatu (1922)", "year": "1922", "mediatype": "movies"},
+      {"identifier": "Nosferatu_1922_v2", "title": "Nosferatu 1922 restored", "year": "1922", "mediatype": "movies"}
+    ]
+  }
+}
