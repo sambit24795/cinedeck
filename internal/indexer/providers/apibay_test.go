@@ -13,10 +13,7 @@ import (
 // serveFixture starts a test server that answers every request with the file at path.
 func serveFixture(t *testing.T, path string, lastURL *string) *httptest.Server {
 	t.Helper()
-	data, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("read fixture %s: %v", path, err)
-	}
+	data := readFixture(t, path)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if lastURL != nil {
 			*lastURL = r.URL.RequestURI()
@@ -26,6 +23,16 @@ func serveFixture(t *testing.T, path string, lastURL *string) *httptest.Server {
 	}))
 	t.Cleanup(srv.Close)
 	return srv
+}
+
+// readFixture reads a testdata file and fails the test on error.
+func readFixture(t *testing.T, path string) []byte {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read fixture %s: %v", path, err)
+	}
+	return data
 }
 
 func TestApibaySearch(t *testing.T) {

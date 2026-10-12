@@ -1,0 +1,25 @@
+{
+  "status": "ok",
+  "status_message": "Query was successful",
+  "data": {
+    "movie_count": 1,
+    "limit": 20,
+    "page_number": 1,
+    "movies": [
+      {
+        "id": 12345,
+        "url": "https://yts.mx/movies/inception-2010",
+        "imdb_code": "tt1375666",
+        "title": "Inception",
+        "year": 2010,
+        "rating": 8.8,
+        "runtime": 148,
+        "genres": ["Action", "Sci-Fi"],
+        "torrents": [
+          {"url":"https://yts.mx/torrent/download/H1","hash":"1a2b3c4d5e6f1a2b3c4d5e6f1a2b3c4d5e6f1a2b","quality":"1080p","type":"bluray","seeds":300,"peers":40,"size":"2.1 GB","size_bytes":2254857830,"date_uploaded_unix":1700000000},
+          {"url":"https://yts.mx/torrent/download/H2","hash":"1a2b3c4d5e6f1a2b3c4d5e6f1a2b3c4d5e6f1a2b","quality":"720p","type":"web","seeds":150,"peers":20,"size":"1.1 GB","size_bytes":1181116006,"date_uploaded_unix":1700000000}
+        ]
+      }
+    ]
+  }
+}
