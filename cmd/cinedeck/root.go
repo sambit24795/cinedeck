@@ -36,5 +36,6 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newHistoryCmd())
 	cmd.AddCommand(newRecommendCmd())
 	cmd.AddCommand(newTorrentsCmd())
+	cmd.AddCommand(newFreeCmd())
 	return cmd
 }

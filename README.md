@@ -110,6 +110,13 @@ Results are grouped as Stream, Free, With ads, Rent and Buy, followed by the TMD
 
 Add `--json` to any of these for machine-readable output (with `where`, the JustWatch notice is also printed to stderr).
 
+Search the Internet Archive for free, public-domain media (no TMDB token needed):
+
+```
+cinedeck free "night of the living dead"
+cinedeck free "nosferatu" --json
+```
+
 ## Torrent search (private use only)
 
 Search public torrent indexers by title and see seeder and leecher counts. Providers are off until you enable them in your config:
