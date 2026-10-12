@@ -1,0 +1,38 @@
+{
+  "name": "cinedeck",
+  "version": "0.1.0",
+  "description": "Find movies and TV shows, get recommendations, see where to watch, and search torrents — a local CLI and web UI.",
+  "license": "MIT",
+  "bin": {
+    "cinedeck": "cli.js"
+  },
+  "scripts": {
+    "install": "node install.js",
+    "test": "node --test"
+  },
+  "files": [
+    "cli.js",
+    "install.js",
+    "LICENSE",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sambit24795/cinedeck.git"
+  },
+  "keywords": [
+    "movies",
+    "tv",
+    "tmdb",
+    "torrent",
+    "recommendations",
+    "cli",
+    "where-to-watch"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "tar": "^7.4.3"
+  }
+}

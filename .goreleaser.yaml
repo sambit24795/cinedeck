@@ -1,0 +1,56 @@
+# cinedeck release configuration.
+# Builds a single static binary per platform and uploads them as GitHub release
+# assets. The npm wrapper downloads the matching asset.
+
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - gofmt -l .
+    - go vet ./...
+
+builds:
+  - id: cinedeck
+    main: ./cmd/cinedeck
+    binary: cinedeck
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+      - android
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: android
+        goarch: amd64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{ .Version }}
+
+archives:
+  - id: default
+    formats: [tar.gz]
+    # name template used by the npm installer to find the right asset
+    name_template: >-
+      cinedeck_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+
+release:
+  github:
+    owner: sambit24795
+    name: cinedeck

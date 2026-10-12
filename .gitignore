@@ -1,1 +1,5 @@
 /cinedeck
+npm/bin/
+npm/node_modules/
+npm/package-lock.json
+*.tgz
