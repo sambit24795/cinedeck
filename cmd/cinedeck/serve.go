@@ -20,49 +20,71 @@ import (
 
 // newServeCmd starts a local web UI for search and torrent browsing.
 func newServeCmd() *cobra.Command {
-	var port int
-	var localOnly bool
 	cmd := &cobra.Command{
 		Use:   "serve",
 		Short: "Start a local web UI",
 		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			addr := fmt.Sprintf("0.0.0.0:%d", port)
-			if localOnly {
-				addr = fmt.Sprintf("127.0.0.1:%d", port)
-			}
-
-			s := &server{
-				catalog:  nil, // built lazily per request from config
-				registry: defaultTorrentsRegistry(),
-			}
-
-			mux := http.NewServeMux()
-			mux.HandleFunc("/", s.handleIndex)
-			mux.HandleFunc("/api/search", s.handleSearch)
-			mux.HandleFunc("/api/detail", s.handleDetail)
-			mux.HandleFunc("/api/watch", s.handleWatch)
-			mux.HandleFunc("/api/browse", s.handleBrowse)
-			mux.HandleFunc("/api/genres", s.handleGenres)
-			mux.HandleFunc("/api/torrents/title", s.handleTorrentsForTitle)
-			mux.HandleFunc("/api/recommend/from", s.handleRecommendFrom)
-			mux.HandleFunc("/api/recommend/personal", s.handleRecommendPersonal)
-			mux.HandleFunc("/api/like", s.handleLike)
-			mux.HandleFunc("/api/watchlist", s.handleWatchlist)
-			mux.HandleFunc("/api/library", s.handleLibraryList)
-			mux.HandleFunc("/api/torrents", s.handleTorrents)
-			mux.HandleFunc("/api/free", s.handleFree)
-
-			url := fmt.Sprintf("http://%s:%d", displayHost(addr, localOnly), port)
-			fmt.Fprintf(cmd.OutOrStdout(), "cinedeck is running at %s\n", url)
-			fmt.Fprintf(cmd.OutOrStdout(), "Press Ctrl+C to stop.\n")
-
-			return http.ListenAndServe(addr, mux)
-		},
+		RunE:  runServe,
 	}
-	cmd.Flags().IntVar(&port, "port", 8080, "port to listen on")
-	cmd.Flags().BoolVar(&localOnly, "local-only", false, "bind to 127.0.0.1 only")
+	addServeFlags(cmd)
 	return cmd
+}
+
+// newRunCmd is an alias for serve, so `cinedeck run` starts the UI too.
+func newRunCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "run",
+		Short: "Start the web UI (alias for serve)",
+		Args:  cobra.NoArgs,
+		RunE:  runServe,
+	}
+	addServeFlags(cmd)
+	return cmd
+}
+
+// addServeFlags registers --port and --local-only.
+func addServeFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
+	flags.Int("port", 8080, "port to listen on")
+	flags.Bool("local-only", false, "bind to 127.0.0.1 only")
+}
+
+// runServe starts the HTTP server using the --port and --local-only flags.
+func runServe(cmd *cobra.Command, args []string) error {
+	port, _ := cmd.Flags().GetInt("port")
+	localOnly, _ := cmd.Flags().GetBool("local-only")
+
+	addr := fmt.Sprintf("0.0.0.0:%d", port)
+	if localOnly {
+		addr = fmt.Sprintf("127.0.0.1:%d", port)
+	}
+
+	s := &server{
+		catalog:  nil, // built lazily per request from config
+		registry: defaultTorrentsRegistry(),
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", s.handleIndex)
+	mux.HandleFunc("/api/search", s.handleSearch)
+	mux.HandleFunc("/api/detail", s.handleDetail)
+	mux.HandleFunc("/api/watch", s.handleWatch)
+	mux.HandleFunc("/api/browse", s.handleBrowse)
+	mux.HandleFunc("/api/genres", s.handleGenres)
+	mux.HandleFunc("/api/torrents/title", s.handleTorrentsForTitle)
+	mux.HandleFunc("/api/recommend/from", s.handleRecommendFrom)
+	mux.HandleFunc("/api/recommend/personal", s.handleRecommendPersonal)
+	mux.HandleFunc("/api/like", s.handleLike)
+	mux.HandleFunc("/api/watchlist", s.handleWatchlist)
+	mux.HandleFunc("/api/library", s.handleLibraryList)
+	mux.HandleFunc("/api/torrents", s.handleTorrents)
+	mux.HandleFunc("/api/free", s.handleFree)
+
+	url := fmt.Sprintf("http://%s:%d", displayHost(addr, localOnly), port)
+	fmt.Fprintf(cmd.OutOrStdout(), "cinedeck is running at %s\n", url)
+	fmt.Fprintf(cmd.OutOrStdout(), "Press Ctrl+C to stop.\n")
+
+	return http.ListenAndServe(addr, mux)
 }
 
 // displayHost returns the host to show users.

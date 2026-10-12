@@ -84,7 +84,7 @@ func newTorrentsSaveCmd() *cobra.Command {
 		Short: "Save a release to your library",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			_, cfg, err := newCatalog(cmd)
+			cfg, err := loadConfigOnly(cmd)
 			if err != nil {
 				return err
 			}
@@ -177,7 +177,7 @@ func newTorrentsInfoCmd() *cobra.Command {
 		Short: "Show details for one torrent",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			_, cfg, err := newCatalog(cmd)
+			cfg, err := loadConfigOnly(cmd)
 			if err != nil {
 				return err
 			}
@@ -298,7 +298,7 @@ func newTorrentsProvidersCmd() *cobra.Command {
 		Short: "List indexer providers",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			_, cfg, err := newCatalog(cmd)
+			cfg, err := loadConfigOnly(cmd)
 			if err != nil {
 				return err
 			}
@@ -331,7 +331,7 @@ func newTorrentsSearchCmd() *cobra.Command {
 		Short: "Search enabled indexers for a title",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			_, cfg, err := newCatalog(cmd)
+			cfg, err := loadConfigOnly(cmd)
 			if err != nil {
 				return err
 			}

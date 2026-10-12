@@ -395,3 +395,23 @@ func TestInfoNoSavedTorrentsSection(t *testing.T) {
 		t.Errorf("unexpected torrent section:\n%s", out)
 	}
 }
+
+func TestTorrentsProvidersWorksWithoutToken(t *testing.T) {
+	t.Setenv("CINEDECK_TMDB_TOKEN", "")
+	t.Setenv("CINEDECK_INDEXER_PROVIDERS", "")
+	t.Setenv("CINEDECK_CACHE_DIR", t.TempDir())
+
+	useFakeProviders(t, &fakeTorrentProvider{name: "fake"})
+	cmd := newRootCmd()
+	var out strings.Builder
+	cmd.SetOut(&out)
+	cmd.SetErr(&out)
+	cmd.SetIn(strings.NewReader(""))
+	cmd.SetArgs([]string{"torrents", "providers", "--config", filepath.Join(t.TempDir(), "none.toml")})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("torrents providers should not need a token, got: %v", err)
+	}
+	if !strings.Contains(out.String(), "fake") {
+		t.Errorf("output missing provider name: %q", out.String())
+	}
+}

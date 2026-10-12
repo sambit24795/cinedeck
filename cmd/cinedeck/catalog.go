@@ -11,6 +11,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// loadConfigOnly loads the configuration without requiring a TMDB token.
+// Commands that do not need TMDB (torrents, free, providers) use this.
+func loadConfigOnly(cmd *cobra.Command) (config.Config, error) {
+	path, err := configPath(cmd)
+	if err != nil {
+		return config.Config{}, err
+	}
+	return config.Load(path)
+}
+
 // newCatalog loads the configuration and builds a TMDB client for cmd.
 func newCatalog(cmd *cobra.Command) (*catalog.Client, config.Config, error) {
 	path, err := configPath(cmd)

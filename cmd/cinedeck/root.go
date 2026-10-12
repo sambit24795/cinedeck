@@ -38,5 +38,6 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newTorrentsCmd())
 	cmd.AddCommand(newFreeCmd())
 	cmd.AddCommand(newServeCmd())
+	cmd.AddCommand(newRunCmd())
 	return cmd
 }
