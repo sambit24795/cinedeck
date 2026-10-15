@@ -9,6 +9,7 @@ const zlib = require("node:zlib");
 const { Readable } = require("node:stream");
 const { pipeline } = require("node:stream/promises");
 const tar = require("tar");
+const { ensureInstalledOnPath, isGlobalInstall } = require("./winpath");
 
 const OWNER = "sambit24795";
 const REPO = "cinedeck";
@@ -67,15 +68,83 @@ async function main() {
     tar.extract({ cwd: binDir, strip: 0, filter: () => true })
   );
 
-  const bin = path.join(binDir, BIN_NAME);
-  if (!fs.existsSync(bin)) {
+  const bin = placeBinary(binDir, BIN_NAME);
+  if (!bin) {
     throw new Error(
       `cinedeck: archive did not contain ${BIN_NAME}; please report this.`
     );
   }
-  fs.chmodSync(bin, 0o755);
+  try {
+    fs.chmodSync(bin, 0o755);
+  } catch (err) {
+    // Windows only honors the read-only bit; a failure here must not
+    // roll back an otherwise successful install.
+    if (process.platform !== "win32") throw err;
+  }
 
   console.error(`cinedeck: installed ${bin}`);
+  registerOnPath(path.dirname(bin));
+}
+
+function placeBinary(binDir, name) {
+  const direct = path.join(binDir, name);
+  if (fs.existsSync(direct)) return direct;
+
+  const found = findBinary(binDir, name);
+  if (!found) return null;
+  if (path.resolve(found) === path.resolve(direct)) return direct;
+  fs.renameSync(found, direct);
+  return direct;
+}
+
+function findBinary(dir, name) {
+  const wanted = name.toLowerCase();
+  const stack = [dir];
+  while (stack.length) {
+    const current = stack.pop();
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const full = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        stack.push(full);
+        continue;
+      }
+      if (entry.name.toLowerCase() === wanted) return full;
+    }
+  }
+  return null;
+}
+
+function registerOnPath(binDir) {
+  if (process.platform !== "win32" || !isGlobalInstall()) return;
+  try {
+    const result = ensureInstalledOnPath(binDir);
+    const userStatus = result.user && result.user.status;
+    if (userStatus === "added" || (result.machine && result.machine.status === "added")) {
+      const where =
+        result.machine && result.machine.status === "added"
+          ? "your user and system Path"
+          : "your user Path";
+      console.error(`cinedeck: added ${binDir} to ${where}.`);
+      console.error(
+        "cinedeck: open a new terminal so `cinedeck` is recognized. To use it in this window:"
+      );
+      console.error(`  cmd:        set "Path=%Path%;${binDir}"`);
+      console.error(`  PowerShell: $env:Path += ';${binDir}'`);
+    } else if (userStatus === "already") {
+      console.error(`cinedeck: ${binDir} is already on your user Path.`);
+    }
+    if (result.user && result.user.warnings && result.user.warnings.includes("warn:long")) {
+      console.error(
+        "cinedeck: your Path environment variable is very long; Windows may ignore entries past the limit."
+      );
+    }
+  } catch (err) {
+    console.error(`cinedeck: could not update Path (${err.message}).`);
+    console.error(
+      "cinedeck: add this directory to your Path environment variable, then open a new terminal:"
+    );
+    console.error(`  ${binDir}`);
+  }
 }
 
 main().catch((err) => {

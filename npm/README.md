@@ -13,6 +13,11 @@ itself.
 npm install -g cinedeck
 ```
 
+On Windows the installer adds the downloaded binary's directory to your user
+Path environment variable (and to the system Path when the install is elevated
+and outside your user profile). Open a new terminal if `cinedeck` is not
+recognized in the one you installed from.
+
 ## Quickstart
 
 ```bash

@@ -14,6 +14,16 @@ responsible for legal compliance with local laws and indexer terms of service.
 go install github.com/sambit24795/cinedeck/cmd/cinedeck@latest
 ```
 
+Or install the prebuilt binary with npm:
+
+```
+npm install -g cinedeck
+```
+
+On Windows, `npm install -g` adds the binary directory to your user Path
+environment variable. Open a new terminal if `cinedeck` is not recognized in
+the one you installed from.
+
 ## Get a TMDB token
 
 cinedeck needs a free TMDB token. Each user brings their own; none is built into cinedeck.

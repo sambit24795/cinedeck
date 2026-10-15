@@ -1,6 +1,6 @@
 {
   "name": "cinedeck",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Find movies and TV shows, get recommendations, see where to watch, and search torrents — a local CLI and web UI.",
   "license": "MIT",
   "bin": {
@@ -8,11 +8,14 @@
   },
   "scripts": {
     "install": "node install.js",
+    "uninstall": "node uninstall.js",
     "test": "node --test"
   },
   "files": [
     "cli.js",
     "install.js",
+    "uninstall.js",
+    "winpath.js",
     "LICENSE",
     "README.md"
   ],
